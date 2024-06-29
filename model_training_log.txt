@@ -1,0 +1,175 @@
+2024-06-08 21:57:49,687 - Data loaded successfully.
+2024-06-08 21:57:49,694 - Data preprocessing completed.
+2024-06-08 21:57:49,697 - Data split into training and testing sets.
+2024-06-08 21:57:49,698 - Model training completed.
+2024-06-08 21:57:49,710 - Model evaluation metrics:
+   Metric  Score
+ Accuracy    1.0
+Precision    1.0
+   Recall    1.0
+ F1 Score    1.0
+2024-06-08 21:57:49,974 - Model has been trained and saved to naive_bayes_stunting_model.pkl
+2024-06-08 21:59:48,796 - Data loaded successfully.
+2024-06-08 21:59:48,797 - Data preprocessing completed.
+2024-06-08 21:59:48,798 - Data split into training and testing sets.
+2024-06-08 21:59:48,799 - Model training completed.
+2024-06-08 22:00:52,120 - Data loaded successfully.
+2024-06-08 22:00:52,121 - Data preprocessing completed.
+2024-06-08 22:00:52,122 - Data split into training and testing sets.
+2024-06-08 22:00:52,625 - Feature selection using Backward Elimination completed.
+2024-06-08 22:00:52,625 - Selected features: Index(['Tinggi Badan (cm)'], dtype='object')
+2024-06-08 22:00:52,627 - Model training completed.
+2024-06-08 22:00:52,632 - Model evaluation metrics:
+   Metric  Score
+ Accuracy    1.0
+Precision    1.0
+   Recall    1.0
+ F1 Score    1.0
+2024-06-08 22:00:52,765 - Model has been trained and saved to naive_bayes_stunting_model.pkl
+2024-06-08 22:00:52,767 - Feature ranking:
+                   Feature  Ranking
+              Usia (bulan)        2
+             Jenis Kelamin        6
+ Pendapatan Keluarga (Rp)         4
+         Tinggi Badan (cm)        1
+          Berat Badan (kg)        3
+   Ketersediaan Air Bersih        7
+          Kondisi Sanitasi        5
+    Pemberian Susu Formula        8
+2024-06-08 22:03:14,340 - Data loaded successfully.
+2024-06-08 22:03:14,342 - Data preprocessing completed.
+2024-06-08 22:03:14,397 - Selected features: Index(['Jenis Kelamin'], dtype='object')
+2024-06-08 22:03:14,398 - Data split into training and testing sets.
+2024-06-08 22:03:14,399 - Model training completed.
+2024-06-08 22:03:14,404 - Model evaluation metrics:
+   Metric  Score
+ Accuracy    1.0
+Precision    1.0
+   Recall    1.0
+ F1 Score    1.0
+2024-06-08 22:03:14,538 - Model has been trained and saved to naive_bayes_stunting_model.pkl
+2024-06-08 22:03:14,540 - Feature ranking:
+      Feature  Ranking
+Jenis Kelamin        1
+2024-06-08 22:05:00,938 - Data loaded successfully.
+2024-06-08 22:05:00,940 - Data preprocessing completed.
+2024-06-08 22:05:00,950 - Selected features: Index(['Jenis Kelamin'], dtype='object')
+2024-06-08 22:05:00,950 - Data split into training and testing sets.
+2024-06-08 22:05:00,951 - Model training completed.
+2024-06-08 22:05:00,956 - Model evaluation metrics:
+   Metric  Score
+ Accuracy    1.0
+Precision    1.0
+   Recall    1.0
+ F1 Score    1.0
+2024-06-08 22:05:01,101 - Model has been trained and saved to naive_bayes_stunting_model.pkl
+2024-06-08 22:05:01,103 - Feature ranking:
+      Feature  Ranking
+Jenis Kelamin        1
+2024-06-08 22:05:10,327 - Data loaded successfully.
+2024-06-08 22:05:10,328 - Data preprocessing completed.
+2024-06-08 22:05:10,338 - Selected features: Index(['Jenis Kelamin'], dtype='object')
+2024-06-08 22:05:10,339 - Data split into training and testing sets.
+2024-06-08 22:05:10,340 - Model training completed.
+2024-06-08 22:05:10,346 - Model evaluation metrics:
+   Metric  Score
+ Accuracy    1.0
+Precision    1.0
+   Recall    1.0
+ F1 Score    1.0
+2024-06-08 22:05:10,475 - Model has been trained and saved to naive_bayes_stunting_model.pkl
+2024-06-08 22:05:10,476 - Feature ranking:
+      Feature  Ranking
+Jenis Kelamin        1
+2024-06-08 22:06:12,789 - Data loaded successfully.
+2024-06-08 22:06:21,113 - Data loaded successfully.
+2024-06-08 22:06:34,169 - Data preprocessing completed.
+2024-06-08 22:07:06,629 - Selected features: Index(['Jenis Kelamin'], dtype='object')
+2024-06-08 22:07:18,384 - Data split into training and testing sets.
+2024-06-08 22:07:25,783 - Model training completed.
+2024-06-08 22:07:33,375 - Model evaluation metrics:
+   Metric  Score
+ Accuracy    1.0
+Precision    1.0
+   Recall    1.0
+ F1 Score    1.0
+2024-06-08 22:07:49,448 - Model has been trained and saved to naive_bayes_stunting_model.pkl
+2024-06-08 22:07:49,449 - Feature ranking:
+      Feature  Ranking
+Jenis Kelamin        1
+2024-06-08 22:11:42,544 - Data loaded successfully.
+2024-06-08 22:11:46,063 - Data loaded successfully.
+2024-06-08 22:12:59,725 - Data loaded successfully.
+2024-06-08 22:13:34,101 - Data loaded successfully.
+2024-06-08 22:15:35,556 - Data preprocessing completed.
+2024-06-08 22:16:03,324 - Selected features: Index(['const', 'tinggi'], dtype='object')
+2024-06-08 22:16:23,280 - Data split into training and testing sets.
+2024-06-08 22:16:38,992 - Model training completed.
+2024-06-08 22:16:48,539 - Model evaluation metrics:
+   Metric  Score
+ Accuracy    1.0
+Precision    1.0
+   Recall    1.0
+ F1 Score    1.0
+2024-06-08 22:17:11,576 - Model has been trained and saved to naive_bayes_stunting_model.pkl
+2024-06-08 22:17:11,578 - Feature ranking:
+Feature  Ranking
+  const        1
+ tinggi        2
+2024-06-08 22:20:05,475 - Model training completed.
+2024-06-08 22:20:05,476 - Model has been trained and saved to naive_bayes_stunting_model.pkl
+2024-06-08 22:20:05,477 - Feature ranking:
+Feature  Ranking
+  const        1
+ tinggi        2
+2024-06-08 22:20:25,439 - Model evaluation metrics:
+   Metric  Score
+ Accuracy    1.0
+Precision    1.0
+   Recall    1.0
+ F1 Score    1.0
+2024-06-08 22:20:34,226 - Model has been trained and saved to naive_bayes_stunting_model.pkl
+2024-06-08 22:20:34,227 - Feature ranking:
+Feature  Ranking
+  const        1
+ tinggi        2
+2024-06-08 22:21:50,261 - Class percentages:
+         Class  Percentage
+Tidak Stunting        60.0
+      Stunting        40.0
+2024-06-08 22:31:08,120 - Test data loaded successfully.
+2024-06-08 22:31:08,137 - Trained model loaded successfully.
+2024-06-08 22:32:33,641 - Test data loaded successfully.
+2024-06-08 22:32:33,650 - Trained model loaded successfully.
+2024-06-08 22:38:10,499 - Trained model loaded successfully.
+2024-06-08 22:38:26,250 - Model has been trained and saved to naive_bayes_stunting_model.pkl
+2024-06-08 22:38:26,252 - Feature ranking:
+Feature  Ranking
+  const        1
+ tinggi        2
+2024-06-08 22:38:31,281 - Trained model loaded successfully.
+2024-06-08 23:00:20,648 - Data loaded successfully.
+2024-06-08 23:00:21,677 - Data preprocessing completed.
+2024-06-08 23:00:25,011 - Selected features: Index(['const', 'tinggi'], dtype='object')
+2024-06-08 23:00:26,411 - Model training completed.
+2024-06-08 23:00:26,412 - Model has been trained and saved to naive_bayes_stunting_model.pkl
+2024-06-08 23:00:26,414 - Feature ranking:
+Feature  Ranking
+  const        1
+ tinggi        2
+2024-06-08 23:00:30,345 - Model training completed.
+2024-06-08 23:00:31,160 - Model evaluation metrics:
+   Metric  Score
+ Accuracy    1.0
+Precision    1.0
+   Recall    1.0
+ F1 Score    1.0
+2024-06-08 23:00:31,948 - Class percentages:
+         Class  Percentage
+Tidak Stunting        60.0
+      Stunting        40.0
+2024-06-08 23:00:32,707 - Model has been trained and saved to naive_bayes_stunting_model.pkl
+2024-06-08 23:00:32,709 - Feature ranking:
+Feature  Ranking
+  const        1
+ tinggi        2
