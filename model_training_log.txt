@@ -173,3 +173,29 @@ Tidak Stunting        60.0
 Feature  Ranking
   const        1
  tinggi        2
+2024-09-12 19:10:00,675 - Data loaded successfully.
+2024-09-12 19:10:02,893 - Data preprocessing completed.
+2024-09-12 19:10:08,274 - Selected features: Index(['const', 'tinggi'], dtype='object')
+2024-09-12 19:10:10,863 - Model training completed.
+2024-09-12 19:10:10,865 - Model has been trained and saved to naive_bayes_stunting_model.pkl
+2024-09-12 19:10:10,873 - Feature ranking:
+Feature  Ranking
+  const        1
+ tinggi        2
+2024-09-12 19:10:13,733 - Model training completed.
+2024-09-12 19:10:16,151 - Model training completed.
+2024-09-12 19:10:16,159 - Model evaluation metrics:
+   Metric  Score
+ Accuracy    1.0
+Precision    1.0
+   Recall    1.0
+ F1 Score    1.0
+2024-09-12 19:10:19,168 - Class percentages:
+         Class  Percentage
+Tidak Stunting        60.0
+      Stunting        40.0
+2024-09-12 19:10:23,533 - Model has been trained and saved to naive_bayes_stunting_model.pkl
+2024-09-12 19:10:23,535 - Feature ranking:
+Feature  Ranking
+  const        1
+ tinggi        2
