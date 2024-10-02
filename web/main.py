@@ -12,7 +12,7 @@ import os
 app = Flask(__name__)
 
 # File paths
-train_file_path = '../data_x.xlsx'
+train_file_path = '../data_latih.xlsx'
 test_file_path = '../data_uji.xlsx'
 
 # Preprocessing functions
@@ -148,15 +148,17 @@ def get_test_data():
     return jsonify(test_data_json)
 
 
-# Route to open training data Excel file using cmd
 @app.route('/open_train_data', methods=['GET'])
 def open_train_data():
     try:
         # Command to open the Excel file on Windows
         os.system(f'start excel "{train_file_path}"')  # Ensure that `train_file_path` points to data_x.xlsx
-        return jsonify({'message': 'Training data file opened successfully in Excel.'})
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        # Log the error or handle it silently if needed
+        print(f"Error opening training data file: {str(e)}")
+        return jsonify({'error': 'Failed to open training data file.'}), 500  # Return a proper error response
+    return jsonify({'message': 'Training data file opened successfully.'})  # Return success message
+
 
 # Route to open test data Excel file using cmd
 @app.route('/open_test_data', methods=['GET'])
@@ -164,9 +166,12 @@ def open_test_data():
     try:
         # Command to open the Excel file on Windows
         os.system(f'start excel "{test_file_path}"')  # Ensure that `test_file_path` points to data_uji.xlsx
-        return jsonify({'message': 'Test data file opened successfully in Excel.'})
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        # Log the error or handle it silently if needed
+        print(f"Error opening test data file: {str(e)}")
+        return jsonify({'error': 'Failed to open test data file.'}), 500  # Return a proper error response
+    return jsonify({'message': 'Test data file opened successfully.'})  # Return success message
+
 
 if __name__ == '__main__':
     app.run(debug=True)

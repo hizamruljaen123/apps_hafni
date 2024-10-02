@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="id">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Halaman Admin</title>
+        <!-- Bootstrap 4.6 CSS -->
+        
+        <!-- Font Awesome untuk Ikon -->
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
+            integrity="sha512-dN6CqgBt5cV/a6F2zAQXyyGAKb6G2Y7sjOzBgxxec+oO3tK9GwHlqzG4oYjpOngboRdhN2y3svL4C9o2QK/Zog=="
+            crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <!-- CSS Kustom -->
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/css/bootstrap.min.css" integrity="sha512-rt/SrQ4UNIaGfDyEXZtNcyWvQeOq0QLygHluFQcSjaGB04IxWhal71tKuzP6K8eYXYB6vJV4pHkXcmFGGQ1/0w==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+            <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        </head>
+        <body>
+            <!-- Navbar -->
+            <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
+                <a class="navbar-brand" href="#"><i class="fas fa-chart-line"></i> Admin Dashboard</a>
+                <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav"
+                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav ml-auto">
+                        <li class="nav-item active">
+                            <a class="nav-link" href="#"><i class="fas fa-home"></i> Beranda</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/open_train_data"><i class="fas fa-user"></i> Buka Data Latih</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/open_test_data"><i class="fas fa-sign-out-alt"></i> Buka Data Uji</a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+            <!-- Sidebar dan Konten Utama -->
+            <div class="container-fluid">
+                <div class="row">
+                    <!-- Sidebar -->
+                    <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+                        <div class="sidebar-sticky pt-3">
+                            <ul class="nav flex-column">
+                                <li class="nav-item">
+                                    <a class="nav-link active" href="#">
+                                        <i class="fas fa-tachometer-alt"></i>
+                                        Dashboard
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="/open_train_data">
+                                        <i class="fas fa-users"></i>
+                                        Buka Data Latih
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="/open_test_data">
+                                        <i class="fas fa-cogs"></i>
+                                        Buka Data Uji
+                                    </a>
+                                </li>
+                                <!-- Tambahkan menu lainnya sesuai kebutuhan -->
+                            </ul>
+                        </div>
+                    </nav>
+                    <!-- Konten Utama -->
+                    <main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-md-4">
+                        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center
+                            pt-3 pb-2 mb-3 border-bottom">
+                            <h1 class="h2">Dashboard</h1>
+                            
+                        </div>
+                        <!-- Contoh Kartu dengan Animasi -->
+                        <div class="row">
+                            <div class="col-md-6 mb-6">
+                                <div class="card animated-card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Hasil Prediksi</h5>
+                                        <canvas id="stuntingChart" height="200"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-6">
+                                <div class="card animated-card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Hasil Prediksi Berdasarkan Rentang Pendapatan</h5>
+                                        <canvas id="incomeChart" height="200"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                        </div>
+                        <br>
+                        <br>
+                        <!-- Tambahkan konten lainnya sesuai kebutuhan -->
+                        <!-- Tabel Data Training -->
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="table-responsive"></div>
+                                <h5>Data Training</h5>
+                                <div class="table-container">
+                                    <table class="table table-striped table-bordered custom-table" id="data-table">
+                                        <thead class="thead-dark">
+                                            <tr>
+                                                <th>Nama Keluarga</th>
+                                                <th>Jenis Kelamin</th>
+                                                <th>Usia</th>
+                                                <th>Tinggi (cm)</th>
+                                                <th>Berat (kg)</th>
+                                                <th>Pendapatan (IDR)</th>
+                                                <th>Air Bersih</th>
+                                                <th>Kondisi Sanitasi</th>
+                                                <th>Susu Formula</th>
+                                                <th>Status Stunting</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="data-training">
+                                            <!-- Data akan diisi secara dinamis melalui JavaScript -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                            </div>
+                        </div>
+                        <br>
+                        <br>
+                        <div class="row">
+                            <div class="col-md-12">
+                            <h5>Data Testing</h5>
+                            <div class="table-container">
+                                <table class="table table-striped table-bordered custom-table" id="data-table">
+                                    <thead class="thead-dark">
+                                        <tr>
+                                            <th>Nama Keluarga</th>
+                                            <th>Jenis Kelamin</th>
+                                            <th>Usia</th>
+                                            <th>Tinggi (cm)</th>
+                                            <th>Berat (kg)</th>
+                                            <th>Pendapatan (IDR)</th>
+                                            <th>Air Bersih</th>
+                                            <th>Kondisi Sanitasi</th>
+                                            <th>Susu Formula</th>
+                                            <th>Hasil Prediksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="data-test">
+                                        <!-- Data akan diisi secara dinamis melalui JavaScript -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                        </div>
+                        </div>
+                        
+                    </div>
+                </div>
+                
+                <!-- Tabel Data Uji-->
+                
+            </main>
+        </div>
+    </div>
+    <!-- Bootstrap JS dan dependencies -->
+    <script
+    src="https://code.jquery.com/jquery-3.5.1.slim.min.js"
+    integrity="sha384-DfXdEHgT3h6OYIjQW7zUA5rx2nyH7aUfCTF1n0hsVt4sI8uJXUkq0F+4WgNH5/2X"
+    crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/js/bootstrap.bundle.min.js" integrity="sha512-igl8WEUuas9k5dtnhKqyyld6TzzRjvMqLC79jkgT3z02FvJyHAuUtyemm/P/jYSne1xwFI06ezQxEwweaiV7VA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

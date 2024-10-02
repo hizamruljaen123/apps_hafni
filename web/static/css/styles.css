@@ -1,0 +1,541 @@
+/* static/css/styles.css */
+
+/* ===========================
+   1. CSS Variables
+   =========================== */
+   :root {
+    /* Warna Tema Utama */
+    --color-primary: #2c3e50;
+    --color-secondary: #18bc9c;
+    --color-accent: #e74c3c;
+    --color-light: #ecf0f1;
+    --color-dark: #34495e;
+
+    /* Sidebar */
+    --sidebar-width: 250px;
+    --sidebar-collapsed-width: 80px;
+    --sidebar-bg: var(--color-primary);
+    --sidebar-text: var(--color-light);
+    --sidebar-hover-bg: var(--color-dark);
+    --sidebar-active-bg: var(--color-secondary);
+    --submenu-bg: #34495e;
+    --submenu-hover-bg: #3d566e;
+    --sidebar-transition: 0.3s;
+
+    /* Ikon */
+    --icon-size: 1.2em;
+
+    /* Transisi */
+    --transition-speed: 0.3s;
+}
+
+/* ===========================
+   2. Reset & Base Styles
+   =========================== */
+/* Reset Margin dan Padding */
+*,
+*::before,
+*::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Body */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--color-light);
+    color: var(--color-dark);
+    opacity: 0;
+    animation: fadeIn 0.8s forwards;
+}
+
+/* Animasi Fade-In */
+@keyframes fadeIn {
+    to {
+        opacity: 1;
+    }
+}
+
+/* Smooth Scroll */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Link */
+a {
+    color: var(--color-secondary);
+    text-decoration: none;
+    transition: color var(--transition-speed) ease;
+}
+
+a:hover,
+a:focus {
+    color: var(--color-accent);
+    text-decoration: underline;
+    outline: none;
+}
+
+/* Global Transitions */
+* {
+    transition: background-color var(--transition-speed) ease, color var(--transition-speed) ease;
+}
+
+/* ===========================
+   3. Navbar Styles
+   =========================== */
+.navbar {
+    background-color: var(--color-primary);
+    transition: background-color 0.4s ease, box-shadow 0.4s ease;
+}
+
+.navbar.scrolled {
+    background-color: var(--color-dark);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.navbar .navbar-brand {
+    color: var(--color-light) !important;
+    font-weight: bold;
+    transition: color 0.3s ease;
+}
+
+.navbar .nav-link {
+    color: var(--color-light) !important;
+    margin-left: 15px;
+    position: relative;
+    transition: color var(--transition-speed) ease;
+}
+
+.navbar .nav-link::after {
+    content: '';
+    position: absolute;
+    width: 0%;
+    height: 2px;
+    bottom: -5px;
+    left: 50%;
+    background-color: var(--color-secondary);
+    transition: width var(--transition-speed) ease, left var(--transition-speed) ease;
+}
+
+.navbar .nav-link:hover::after,
+.navbar .nav-link:focus::after {
+    width: 100%;
+    left: 0;
+}
+
+.navbar .nav-link:hover,
+.navbar .nav-link:focus {
+    color: var(--color-secondary) !important;
+    outline: none;
+}
+
+/* ===========================
+   4. Sidebar Styles
+   =========================== */
+#sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: var(--sidebar-width);
+    background-color: var(--sidebar-bg);
+    color: var(--sidebar-text);
+    transition: width var(--sidebar-transition);
+    overflow: hidden;
+    z-index: 999;
+    display: flex;
+    flex-direction: column;
+    color: grey;
+}
+
+#sidebar.collapsed {
+    width: var(--sidebar-collapsed-width);
+}
+
+#sidebar .sidebar-header {
+    padding: 20px;
+    background: var(--color-secondary);
+    text-align: center;
+    font-size: 1.5em;
+    font-weight: bold;
+    color: var(--color-light);
+    transition: background-color var(--transition-speed) ease;
+}
+
+#sidebar .nav {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 20px;
+}
+
+/* Navigation Links */
+#sidebar .nav-link {
+    display: flex;
+    align-items: center;
+    padding: 15px 20px;
+    color: var(--sidebar-text);
+    text-decoration: none;
+    font-size: 1em;
+    transition: background-color var(--sidebar-transition), padding-left var(--sidebar-transition);
+    position: relative;
+    color: grey;
+}
+
+#sidebar .nav-link:hover,
+#sidebar .nav-link:focus {
+    background-color: var(--sidebar-hover-bg);
+    padding-left: 25px;
+    cursor: pointer;
+    color: var(--color-light);
+    outline: none;
+}
+
+#sidebar .nav-link.active {
+    background-color: var(--sidebar-active-bg);
+    color: var(--color-primary);
+    font-weight: bold;
+}
+
+#sidebar .nav-link i {
+    margin-right: 15px;
+    font-size: var(--icon-size);
+    transition: transform var(--sidebar-transition);
+}
+
+#sidebar.collapsed .nav-link span {
+    display: none;
+}
+
+#sidebar.collapsed .nav-link i {
+    margin: 0 auto;
+    transform: rotate(0deg);
+}
+
+/* Submenu Styles */
+#sidebar .submenu {
+    background-color: var(--submenu-bg);
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height var(--sidebar-transition);
+}
+
+#sidebar .submenu .nav-link {
+    padding-left: 40px;
+    font-size: 0.9em;
+    background-color: var(--submenu-bg);
+    color: #bdc3c7;
+}
+
+#sidebar .submenu .nav-link:hover,
+#sidebar .submenu .nav-link:focus {
+    background-color: var(--submenu-hover-bg);
+    color: var(--color-light);
+    outline: none;
+}
+
+/* Submenu Indicator */
+#sidebar .nav-link .submenu-indicator {
+    margin-left: auto;
+    transition: transform var(--sidebar-transition);
+}
+
+#sidebar .nav-link.active .submenu-indicator {
+    transform: rotate(180deg);
+}
+
+#sidebar .nav-link.active + .submenu {
+    max-height: 500px; /* Adjust as needed */
+}
+
+/* Scrollbar Styling */
+#sidebar {
+    scrollbar-width: thin;
+    scrollbar-color: #34495e var(--sidebar-bg);
+}
+
+#sidebar::-webkit-scrollbar {
+    width: 8px;
+}
+
+#sidebar::-webkit-scrollbar-track {
+    background: var(--sidebar-bg);
+}
+
+#sidebar::-webkit-scrollbar-thumb {
+    background-color: #34495e;
+    border-radius: 4px;
+    border: 2px solid var(--sidebar-bg);
+}
+
+/* ===========================
+   5. Main Content Styles
+   =========================== */
+main {
+    padding: 20px;
+    transition: margin-left var(--transition-speed) ease;
+}
+
+@media (min-width: 768px) {
+    main {
+        margin-left: var(--sidebar-width);
+    }
+
+    #sidebar.collapsed + main {
+        margin-left: var(--sidebar-collapsed-width);
+    }
+}
+
+/* ===========================
+   6. Card Styles
+   =========================== */
+.card {
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: transform var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
+    background-color: var(--color-light);
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+}
+
+/* ===========================
+   7. Button Styles
+   =========================== */
+.btn-primary {
+    background-color: var(--color-secondary);
+    border: none;
+    transition: background-color var(--transition-speed) ease, transform var(--transition-speed) ease;
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+    background-color: var(--color-accent);
+    transform: translateY(-2px);
+    outline: none;
+}
+
+.btn-outline-secondary {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+    transition: background-color var(--transition-speed) ease, color var(--transition-speed) ease;
+}
+
+.btn-outline-secondary:hover,
+.btn-outline-secondary:focus {
+    background-color: var(--color-primary);
+    color: var(--color-light);
+    outline: none;
+}
+
+/* ===========================
+   8. Footer Styles (Optional)
+   =========================== */
+footer {
+    background-color: var(--color-primary);
+    color: var(--color-light);
+    text-align: center;
+    padding: 15px 0;
+    position: fixed;
+    width: 100%;
+    bottom: 0;
+}
+
+/* ===========================
+   9. Responsive Sidebar Styles
+   =========================== */
+@media (max-width: 768px) {
+    #sidebar {
+        left: -var(--sidebar-width);
+        width: var(--sidebar-width);
+        transition: left var(--transition-speed) ease;
+    }
+
+    #sidebar.active {
+        left: 0;
+    }
+
+    /* Toggle Button */
+    .sidebar-toggle {
+        position: fixed;
+        top: 15px;
+        left: 15px;
+        background-color: var(--color-primary);
+        color: var(--color-light);
+        border: none;
+        padding: 10px;
+        border-radius: 4px;
+        cursor: pointer;
+        z-index: 1000;
+        transition: background-color var(--transition-speed) ease;
+    }
+
+    .sidebar-toggle:hover,
+    .sidebar-toggle:focus {
+        background-color: var(--sidebar-hover-bg);
+        outline: none;
+    }
+
+    /* Adjust Main Content When Sidebar is Open */
+    main {
+        margin-left: 0;
+        transition: margin-left var(--transition-speed) ease;
+    }
+
+    #sidebar.active + main {
+        margin-left: var(--sidebar-width);
+    }
+
+    /* Hide Sidebar Header When Collapsed */
+    #sidebar.collapsed .sidebar-header {
+        display: none;
+    }
+
+    /* Adjust Nav Links for Mobile */
+    #sidebar .nav-link {
+        justify-content: center;
+        padding: 15px 10px;
+    }
+
+    #sidebar .nav-link span {
+        display: none;
+    }
+}
+/* static/css/styles.css */
+
+/* ===========================
+   Custom Table Styles
+   =========================== */
+
+/* Kelas Tabel Kustom */
+.custom-table {
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+    background-color: var(--color-light);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+/* Header Tabel */
+.custom-table thead th {
+    background-color: var(--color-primary);
+    color: var(--color-light);
+    text-align: center;
+    padding: 12px 15px;
+    font-size: 1rem;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+/* Baris Ganjil dan Genap */
+.custom-table tbody tr:nth-of-type(odd) {
+    background-color: rgba(236, 240, 241, 0.9);
+}
+
+.custom-table tbody tr:nth-of-type(even) {
+    background-color: rgba(236, 240, 241, 0.6);
+}
+
+/* Hover Efek pada Baris */
+.custom-table tbody tr:hover {
+    background-color: var(--color-secondary) !important;
+    color: var(--color-light) !important;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Seluruh Sel Tabel */
+.custom-table tbody td {
+    padding: 12px 15px;
+    text-align: center;
+    vertical-align: middle;
+    font-size: 0.95rem;
+    color: var(--color-dark);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Styling untuk Tabel Responsif */
+@media (max-width: 768px) {
+    .custom-table thead {
+        display: none;
+    }
+
+    .custom-table, 
+    .custom-table tbody, 
+    .custom-table tr, 
+    .custom-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .custom-table tr {
+        margin-bottom: 15px;
+        border-bottom: 2px solid var(--color-secondary);
+    }
+
+    .custom-table td {
+        text-align: right;
+        padding-left: 50%;
+        position: relative;
+    }
+
+    .custom-table td::before {
+        content: attr(data-label);
+        position: absolute;
+        left: 15px;
+        width: 45%;
+        padding-right: 10px;
+        white-space: nowrap;
+        text-align: left;
+        font-weight: bold;
+        color: var(--color-primary);
+    }
+}
+
+/* Footer Tabel (Jika Ada) */
+.custom-table tfoot td {
+    background-color: var(--color-primary);
+    color: var(--color-light);
+    text-align: center;
+    padding: 12px 15px;
+    font-size: 1rem;
+    font-weight: bold;
+}
+/* ===========================
+   10. Table Container Styles
+   =========================== */
+   .table-container {
+    max-height: 350px;             /* Membatasi tinggi maksimum kontainer */
+    height: 350px;                 /* Menetapkan tinggi tetap */
+    overflow-y: auto;              /* Menambahkan scroll vertikal jika konten melebihi tinggi */
+    overflow-x: hidden;            /* Menyembunyikan scroll horizontal */
+    border: 1px solid #dee2e6;     /* Menambahkan border untuk pemisahan */
+    border-radius: 8px;            /* Membuat sudut membulat */
+    background-color: #ffffff;     /* Latar belakang putih untuk kontras */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* Menambahkan bayangan halus */
+}
+
+/* Styling Scrollbar (Opsional) */
+.table-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.table-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+    background-color: #c1c1c1;
+    border-radius: 4px;
+    border: 2px solid #f1f1f1;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+    background-color: #a8a8a8;
+}
