@@ -13,7 +13,7 @@ app = Flask(__name__)
 
 # File paths
 train_file_path = '../data_latih.xlsx'
-test_file_path = '../data_uji.xlsx'
+test_file_path = '../data_uji_y.xlsx'
 
 # Preprocessing functions
 def map_pendapatan(pendapatan):
