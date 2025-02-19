@@ -131,6 +131,34 @@
                         <br>
                         <div class="row">
                             <div class="col-md-12">
+                                <h5>Hasil Evaluasi</h5>
+                            <div class="text-right">
+                                <button class="btn btn-primary" id="btn-predict" data-toggle="modal" data-target="#exampleModal">Evaluasi Model</button>
+                            </div>
+                            <br>
+                            <table class="table table-striped table-bordered custom-table" >
+                                <thead>
+                                    <tr>
+                                        <th>Accuracy</th>
+                                        <th>F1 Score</th>
+                                        <th>Precision</th>
+                                        <th>Recall</th>
+                                        <th>Stunting (%)</th>
+                                        <th>Tidak Stunting (%)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td id="accuracy">-</td>
+                                        <td id="f1-score">-</td>
+                                        <td id="precision">-</td>
+                                        <td id="recall">-</td>
+                                        <td id="stunting">-</td>
+                                        <td id="not-stunting">-</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <br>
                             <h5>Data Testing</h5>
                             <div class="table-container">
                                 <table class="table table-striped table-bordered custom-table" id="data-table">
@@ -165,9 +193,10 @@
             </main>
         </div>
     </div>
+    
     <!-- Bootstrap JS dan dependencies -->
     <script
-    src="https://code.jquery.com/jquery-3.5.1.slim.min.js"
+    src="https://code.jquery.com/jquery-3.5.1.js"
     integrity="sha384-DfXdEHgT3h6OYIjQW7zUA5rx2nyH7aUfCTF1n0hsVt4sI8uJXUkq0F+4WgNH5/2X"
     crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/js/bootstrap.bundle.min.js" integrity="sha512-igl8WEUuas9k5dtnhKqyyld6TzzRjvMqLC79jkgT3z02FvJyHAuUtyemm/P/jYSne1xwFI06ezQxEwweaiV7VA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>

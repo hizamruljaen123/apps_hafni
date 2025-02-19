@@ -22,16 +22,16 @@ async function fetchCombinedData() {
         // Mengisi tbody dengan data yang sudah digabungkan
         combinedData.forEach(item => {
             tbody += `<tr>
-                <td>${item.nama_keluarga}</td>
-                <td>${item.jenis_kelamin}</td>
-                <td>${item.usia}</td>
-                <td>${item.tinggi}</td>
-                <td>${item.berat}</td>
-                <td>${item.pendapatan}</td>
-                <td>${item.air_bersih}</td>
-                <td>${item.kondisi_sanitasi}</td>
-                <td>${item.susu_formula}</td>
-                <td>${item.status_stunting_predicted}</td>
+                <td class="text-left">${item.nama_keluarga}</td>
+                <td class="text-left">${item.jenis_kelamin}</td>
+                <td class="text-left">${item.usia}</td>
+                <td class="text-left">${item.tinggi}</td>
+                <td class="text-left">${item.berat}</td>
+                <td class="text-left">${item.pendapatan}</td>
+                <td class="text-left">${item.air_bersih}</td>
+                <td class="text-left">${item.kondisi_sanitasi}</td>
+                <td class="text-left">${item.susu_formula}</td>
+                <td class="text-left">${item.status_stunting_predicted}</td>
             </tr>`;
         });
 
@@ -188,16 +188,16 @@ async function fetchTrainData() {
         // Mengisi tbody dengan data
         data.forEach(item => {
             tbody += `<tr>
-                <td>${item.Nama}</td>
-                <td>${item.jenis_kelamin}</td>
-                <td>${item.usia}</td>
-                <td>${item.tinggi}</td>
-                <td>${item.berat}</td>
-                <td>${item.pendapatan}</td>
-                <td>${item.air_bersih}</td>
-                <td>${item.kondisi_sanitasi}</td>
-                <td>${item.susu_formula}</td>
-                <td>${item.status_stunting}</td>
+                <td class="text-left">${item.Nama}</td>
+                <td class="text-left">${item.jenis_kelamin}</td>
+                <td class="text-left">${item.usia}</td>
+                <td class="text-left">${item.tinggi}</td>
+                <td class="text-left">${item.berat}</td>
+                <td class="text-left">${item.pendapatan}</td>
+                <td class="text-left">${item.air_bersih}</td>
+                <td class="text-left">${item.kondisi_sanitasi}</td>
+                <td class="text-left">${item.susu_formula}</td>
+                <td class="text-left">${item.status_stunting}</td>
             </tr>`;
         });
 
@@ -207,7 +207,23 @@ async function fetchTrainData() {
         console.error('Error fetching train data:', error);
     }
 }
+async function fetchEvaluationData() {
+    try {
+        const response = await fetch('http://127.0.0.1:5000/evaluate'); // Ganti dengan URL API yang sesuai
+        const data = await response.json();
+        
+        document.getElementById('accuracy').textContent = data.accuracy.toFixed(3);
+        document.getElementById('f1-score').textContent = data.f1_score.toFixed(3);
+        document.getElementById('precision').textContent = data.precision.toFixed(3);
+        document.getElementById('recall').textContent = data.recall.toFixed(3);
+        document.getElementById('stunting').textContent = data.prediction_distribution.Stunting.toFixed(2);
+        document.getElementById('not-stunting').textContent = data.prediction_distribution["Tidak Stunting"].toFixed(2);
+    } catch (error) {
+        console.error('Gagal mengambil data:', error);
+    }
+}
 
+fetchEvaluationData()
 
 fetchCombinedData()
 
