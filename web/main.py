@@ -1,19 +1,76 @@
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify, render_template, request
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import GaussianNB
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
+from sklearn.manifold import TSNE
+from sklearn.impute import SimpleImputer
 import plotly.express as px
 import plotly.io as pio
+import plotly.graph_objects as go
 import joblib
 import os
+import numpy as np
+import math
+import json
 
-# Setup Flask app
+# Custom JSON encoder for NumPy data types
+class NumpyEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        elif isinstance(obj, np.bool_):
+            return bool(obj)
+        return super(NumpyEncoder, self).default(obj)
+
+# Setup Flask app with custom JSON encoder for NumPy types
+class NumpyEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        elif isinstance(obj, np.bool_):
+            return bool(obj)
+        return super(NumpyEncoder, self).default(obj)
+
 app = Flask(__name__)
+app.json_encoder = NumpyEncoder
+app.json_encoder = NumpyEncoder
 
 # File paths
 train_file_path = '../data_latih.xlsx'
 test_file_path = '../data_uji_y.xlsx'
+
+# Cek model dan melatih model jika tidak ada
+def check_and_train_model():
+    if not os.path.exists('naive_bayes_stunting_model.pkl'):
+        try:
+            print("Model tidak ditemukan, melatih model baru...")
+            # Load the training data
+            data = pd.read_excel(train_file_path)
+            
+            # Preprocess the data
+            X = preprocess_data(data)
+            y = data['status_stunting'].map({'Tidak': 0, 'Ya': 1})
+            
+            # Train Naive Bayes model
+            model = GaussianNB()
+            model.fit(X, y)
+            
+            # Save the model
+            joblib.dump(model, 'naive_bayes_stunting_model.pkl')
+            print("Model berhasil dilatih dan disimpan!")
+        except Exception as e:
+            print(f"Error melatih model: {str(e)}")
+    else:
+        print("Model sudah tersedia!")
 
 # Preprocessing functions
 def map_pendapatan(pendapatan):
@@ -172,6 +229,468 @@ def open_test_data():
         return jsonify({'error': 'Failed to open test data file.'}), 500  # Return a proper error response
     return jsonify({'message': 'Test data file opened successfully.'})  # Return success message
 
+# Route untuk halaman simulasi
+@app.route('/simulation')
+def simulation():
+    return render_template('simulation.html')
+
+# API untuk mendapatkan daftar semua data training
+@app.route('/api/get_train_data_list', methods=['GET'])
+def get_train_data_list():
+    try:
+        train_data = pd.read_excel(train_file_path)
+        data_list = []
+        for idx, row in train_data.iterrows():
+            data_list.append({
+                'id': str(idx),
+                'nama': row['nama_keluarga'],
+                'status': row['status_stunting']
+            })
+        return jsonify(data_list)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# API untuk mendapatkan daftar semua data testing
+@app.route('/api/get_test_data_list', methods=['GET'])
+def get_test_data_list():
+    try:
+        test_data = pd.read_excel(test_file_path)
+        data_list = []
+        for idx, row in test_data.iterrows():
+            data_list.append({
+                'id': str(idx),
+                'nama': row['nama_keluarga']
+            })
+        return jsonify(data_list)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# API untuk mendapatkan detail data berdasarkan ID
+@app.route('/api/get_data_detail', methods=['GET'])
+def get_data_detail():
+    try:
+        data_source = request.args.get('source', 'training')
+        data_id = int(request.args.get('id', 0))
+        
+        if data_source == 'training':
+            data = pd.read_excel(train_file_path)
+        else:
+            data = pd.read_excel(test_file_path)
+        
+        if data_id < 0 or data_id >= len(data):
+            return jsonify({'error': 'Data ID tidak valid'}), 400
+        
+        row = data.iloc[data_id]
+        data_detail = row.to_dict()
+        
+        return jsonify(data_detail)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# API untuk batch processing Naive Bayes
+@app.route('/api/batch_process', methods=['GET'])
+def batch_process():
+    try:
+        # Load data uji
+        data = pd.read_excel(test_file_path)
+        
+        # Compute predictions
+        result = compute_batch_predictions(data)
+        
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# API untuk simulasi Naive Bayes dengan step-by-step calculation
+@app.route('/api/simulate_naive_bayes', methods=['POST'])
+def simulate_naive_bayes():
+    try:
+        # Ambil data input dari request
+        input_data = request.get_json()
+        
+        # Load training data dan model
+        train_data = pd.read_excel(train_file_path)
+        model = joblib.load('naive_bayes_stunting_model.pkl')
+        
+        # Preprocess input data
+        processed_input = preprocess_single_input(input_data)
+        
+        # Buat prediksi
+        prediction = model.predict([list(processed_input.values())])[0]
+        prediction_proba = model.predict_proba([list(processed_input.values())])[0]
+        
+        # Hitung step-by-step calculation
+        calculation_steps = calculate_naive_bayes_steps(train_data, processed_input)
+        
+        # Hitung probabilitas prior
+        prior_probs = calculate_prior_probabilities(train_data)
+        
+        # Hitung likelihood probabilities
+        likelihood_probs = calculate_likelihood_probabilities(train_data, processed_input)
+        
+        # Generate 3D plot data
+        plot_data = generate_3d_plot_data(train_data)
+        
+        # Detail calculations untuk tabel
+        detailed_calc = calculate_detailed_probabilities(train_data, processed_input)
+        
+        # Format hasil
+        result = {
+            'prediction': 'Stunting' if prediction == 1 else 'Tidak Stunting',
+            'confidence': float(max(prediction_proba)),
+            'probabilities': {
+                'stunting': float(prediction_proba[1]),
+                'tidak_stunting': float(prediction_proba[0])
+            },
+            'calculation_steps': calculation_steps,
+            'prior_probabilities': prior_probs,
+            'likelihood_probabilities': likelihood_probs,
+            'plot_data': plot_data,
+            'detailed_calculations': detailed_calc
+        }
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+def preprocess_single_input(input_data):
+    """Preprocess input data tunggal"""
+    processed = {}
+    
+    # Map pendapatan
+    pendapatan = float(input_data['pendapatan'])
+    if pendapatan < 1000000:
+        processed['pendapatan'] = 1
+    elif 1000000 <= pendapatan < 2000000:
+        processed['pendapatan'] = 2
+    elif 2000000 <= pendapatan < 3000000:
+        processed['pendapatan'] = 3
+    elif 3000000 <= pendapatan < 4000000:
+        processed['pendapatan'] = 4
+    else:
+        processed['pendapatan'] = 5
+    
+    # Map categorical variables
+    processed['jenis_kelamin'] = 1 if input_data['jenis_kelamin'] == 'Laki-laki' else 0
+    
+    air_bersih_map = {'Buruk': 1, 'Cukup': 2, 'Baik': 3, 'Sangat Baik': 4}
+    processed['air_bersih'] = air_bersih_map[input_data['air_bersih']]
+    
+    sanitasi_map = {'Buruk': 1, 'Cukup': 2, 'Baik': 3, 'Sangat Baik': 4}
+    processed['kondisi_sanitasi'] = sanitasi_map[input_data['kondisi_sanitasi']]
+    
+    processed['susu_formula'] = 1 if input_data['susu_formula'] == 'Ya' else 0
+    
+    # Numerical values
+    processed['tinggi'] = float(input_data['tinggi'])
+    processed['berat'] = float(input_data['berat'])
+    
+    return processed
+
+def calculate_prior_probabilities(train_data):
+    """Hitung probabilitas prior"""
+    total_data = len(train_data)
+    stunting_count = len(train_data[train_data['status_stunting'] == 'Ya'])
+    tidak_stunting_count = total_data - stunting_count
+    
+    return {
+        'stunting': stunting_count / total_data,
+        'tidak_stunting': tidak_stunting_count / total_data
+    }
+
+def calculate_likelihood_probabilities(train_data, processed_input):
+    """Hitung probabilitas likelihood untuk setiap feature"""
+    likelihood_probs = {}
+    
+    features = ['pendapatan', 'tinggi', 'berat', 'jenis_kelamin', 'air_bersih', 'kondisi_sanitasi', 'susu_formula']
+    
+    for feature in features:
+        stunting_data = train_data[train_data['status_stunting'] == 'Ya']
+        tidak_stunting_data = train_data[train_data['status_stunting'] == 'Tidak']
+        
+        if feature in ['tinggi', 'berat']:
+            # Untuk continuous variables, gunakan Gaussian
+            stunting_mean = stunting_data[feature].mean()
+            stunting_std = stunting_data[feature].std()
+            tidak_stunting_mean = tidak_stunting_data[feature].mean()
+            tidak_stunting_std = tidak_stunting_data[feature].std()
+            
+            # Hitung probabilitas menggunakan probability density function
+            stunting_prob = (1 / (stunting_std * math.sqrt(2 * math.pi))) * math.exp(-0.5 * ((processed_input[feature] - stunting_mean) / stunting_std) ** 2)
+            tidak_stunting_prob = (1 / (tidak_stunting_std * math.sqrt(2 * math.pi))) * math.exp(-0.5 * ((processed_input[feature] - tidak_stunting_mean) / tidak_stunting_std) ** 2)
+        else:
+            # Untuk categorical variables
+            if feature == 'pendapatan':
+                # Map back pendapatan for calculation
+                processed_pendapatan = processed_input[feature]
+                stunting_processed = stunting_data['pendapatan'].apply(map_pendapatan)
+                tidak_stunting_processed = tidak_stunting_data['pendapatan'].apply(map_pendapatan)
+                
+                stunting_count = len(stunting_processed[stunting_processed == processed_pendapatan])
+                tidak_stunting_count = len(tidak_stunting_processed[tidak_stunting_processed == processed_pendapatan])
+            else:
+                feature_map = {
+                    'jenis_kelamin': {'Laki-laki': 1, 'Perempuan': 0},
+                    'air_bersih': {'Buruk': 1, 'Cukup': 2, 'Baik': 3, 'Sangat Baik': 4},
+                    'kondisi_sanitasi': {'Buruk': 1, 'Cukup': 2, 'Baik': 3, 'Sangat Baik': 4},
+                    'susu_formula': {'Tidak': 0, 'Ya': 1}
+                }
+                
+                if feature in feature_map:
+                    stunting_mapped = stunting_data[feature].map(feature_map[feature])
+                    tidak_stunting_mapped = tidak_stunting_data[feature].map(feature_map[feature])
+                    
+                    stunting_count = len(stunting_mapped[stunting_mapped == processed_input[feature]])
+                    tidak_stunting_count = len(tidak_stunting_mapped[tidak_stunting_mapped == processed_input[feature]])
+                else:
+                    stunting_count = len(stunting_data[stunting_data[feature] == processed_input[feature]])
+                    tidak_stunting_count = len(tidak_stunting_data[tidak_stunting_data[feature] == processed_input[feature]])
+            
+            # Smoothing untuk menghindari zero probability
+            stunting_prob = (stunting_count + 1) / (len(stunting_data) + 2)
+            tidak_stunting_prob = (tidak_stunting_count + 1) / (len(tidak_stunting_data) + 2)
+        
+        likelihood_probs[feature] = {
+            'stunting': float(stunting_prob),
+            'tidak_stunting': float(tidak_stunting_prob)
+        }
+    
+    return likelihood_probs
+
+def calculate_naive_bayes_steps(train_data, processed_input):
+    """Hitung step-by-step calculation Naive Bayes"""
+    steps = []
+    
+    # Step 1: Prior Probabilities
+    prior_probs = calculate_prior_probabilities(train_data)
+    steps.append({
+        'step_name': 'Menghitung Probabilitas Prior P(Y)',
+        'description': 'Menghitung probabilitas masing-masing kelas berdasarkan data training',
+        'calculations': [
+            {
+                'label': 'P(Stunting)',
+                'formula': f'P(Stunting) = {len(train_data[train_data["status_stunting"] == "Ya"])} / {len(train_data)}',
+                'result': f'{prior_probs["stunting"]:.4f}'
+            },
+            {
+                'label': 'P(Tidak Stunting)', 
+                'formula': f'P(Tidak Stunting) = {len(train_data[train_data["status_stunting"] == "Tidak"])} / {len(train_data)}',
+                'result': f'{prior_probs["tidak_stunting"]:.4f}'
+            }
+        ]
+    })
+    
+    # Step 2: Likelihood Probabilities
+    likelihood_probs = calculate_likelihood_probabilities(train_data, processed_input)
+    likelihood_calcs = []
+    
+    for feature, probs in likelihood_probs.items():
+        likelihood_calcs.append({
+            'label': f'P({feature}|Stunting)',
+            'formula': f'Likelihood untuk {feature} = {processed_input[feature]}',
+            'result': f'{probs["stunting"]:.6f}'
+        })
+        likelihood_calcs.append({
+            'label': f'P({feature}|Tidak Stunting)',
+            'formula': f'Likelihood untuk {feature} = {processed_input[feature]}',
+            'result': f'{probs["tidak_stunting"]:.6f}'
+        })
+    
+    steps.append({
+        'step_name': 'Menghitung Probabilitas Likelihood P(X|Y)',
+        'description': 'Menghitung probabilitas setiap feature given class',
+        'calculations': likelihood_calcs
+    })
+    
+    # Step 3: Posterior Calculation
+    # Calculate posterior probabilities
+    stunting_posterior = prior_probs['stunting']
+    tidak_stunting_posterior = prior_probs['tidak_stunting']
+    
+    for feature, probs in likelihood_probs.items():
+        stunting_posterior *= probs['stunting']
+        tidak_stunting_posterior *= probs['tidak_stunting']
+    
+    # Normalize
+    total_posterior = stunting_posterior + tidak_stunting_posterior
+    stunting_normalized = stunting_posterior / total_posterior
+    tidak_stunting_normalized = tidak_stunting_posterior / total_posterior
+    
+    steps.append({
+        'step_name': 'Menghitung Probabilitas Posterior P(Y|X)',
+        'description': 'Menghitung probabilitas final menggunakan Theorem Bayes',
+        'calculations': [
+            {
+                'label': 'P(Stunting|X)',
+                'formula': f'P(Stunting) × ∏P(Xi|Stunting) = {stunting_posterior:.8f}',
+                'result': f'{stunting_normalized:.4f}'
+            },
+            {
+                'label': 'P(Tidak Stunting|X)',
+                'formula': f'P(Tidak Stunting) × ∏P(Xi|Tidak Stunting) = {tidak_stunting_posterior:.8f}',
+                'result': f'{tidak_stunting_normalized:.4f}'
+            }
+        ]
+    })
+    
+    return steps
+
+def calculate_detailed_probabilities(train_data, processed_input):
+    """Hitung detail probabilitas untuk tabel"""
+    detailed = {}
+    likelihood_probs = calculate_likelihood_probabilities(train_data, processed_input)
+    
+    feature_names = {
+        'pendapatan': 'Pendapatan',
+        'tinggi': 'Tinggi (cm)',
+        'berat': 'Berat (kg)',
+        'jenis_kelamin': 'Jenis Kelamin',
+        'air_bersih': 'Air Bersih',
+        'kondisi_sanitasi': 'Kondisi Sanitasi',
+        'susu_formula': 'Susu Formula'
+    }
+    
+    for feature, display_name in feature_names.items():
+        detailed[display_name] = {
+            'input_value': processed_input[feature],
+            'prob_stunting': likelihood_probs[feature]['stunting'],
+            'prob_tidak_stunting': likelihood_probs[feature]['tidak_stunting']
+        }
+    
+    return detailed
+
+def generate_3d_plot_data(train_data):
+    """Generate data untuk 3D plot"""
+    stunting_data = train_data[train_data['status_stunting'] == 'Ya']
+    tidak_stunting_data = train_data[train_data['status_stunting'] == 'Tidak']
+    
+    # Map pendapatan to numeric values
+    stunting_pendapatan = stunting_data['pendapatan'].apply(map_pendapatan)
+    tidak_stunting_pendapatan = tidak_stunting_data['pendapatan'].apply(map_pendapatan)
+    
+    plot_data = {
+        'stunting': {
+            'x': stunting_data['tinggi'].tolist(),
+            'y': stunting_data['berat'].tolist(),
+            'z': stunting_pendapatan.tolist()
+        },
+        'tidak_stunting': {
+            'x': tidak_stunting_data['tinggi'].tolist(),
+            'y': tidak_stunting_data['berat'].tolist(),
+            'z': tidak_stunting_pendapatan.tolist()
+        }
+    }
+    
+    return plot_data
+
+def generate_tsne_visualization(data, labels):
+    """Generate t-SNE visualization data"""
+    try:
+        # Preprocessing
+        X = preprocess_data(data)
+        
+        # Handle missing values by imputing with mean
+        imputer = SimpleImputer(strategy='mean')
+        X_imputed = imputer.fit_transform(X)
+        
+        # Apply t-SNE
+        tsne = TSNE(n_components=2, random_state=42)
+        X_tsne = tsne.fit_transform(X_imputed)
+        
+        # Prepare data for visualization
+        tsne_data = {
+            'stunting': {
+                'x': X_tsne[labels == 1, 0].tolist(),
+                'y': X_tsne[labels == 1, 1].tolist()
+            },
+            'tidak_stunting': {
+                'x': X_tsne[labels == 0, 0].tolist(),
+                'y': X_tsne[labels == 0, 1].tolist()
+            }
+        }
+        
+        return tsne_data
+    except Exception as e:
+        print(f"Error in t-SNE visualization: {str(e)}")
+        # Return empty data if error occurs
+        return {
+            'stunting': {'x': [], 'y': []},
+            'tidak_stunting': {'x': [], 'y': []}
+        }
+
+def compute_batch_predictions(data):
+    """Compute predictions for a batch of data"""
+    try:
+        # Load model
+        model = joblib.load('naive_bayes_stunting_model.pkl')
+        
+        # Prepare data
+        X = preprocess_data(data)
+        
+        # Handle missing values (NaN)
+        imputer = SimpleImputer(strategy='mean')
+        X_imputed = imputer.fit_transform(X)
+        
+        # Make predictions
+        y_pred = model.predict(X_imputed)
+        y_pred_proba = model.predict_proba(X_imputed)
+        
+        # Map true labels
+        y_true = data['status_stunting'].map({'Tidak': 0, 'Ya': 1}).values
+        
+        # Calculate metrics
+        accuracy = accuracy_score(y_true, y_pred)
+        precision = precision_score(y_true, y_pred)
+        recall = recall_score(y_true, y_pred)
+        f1 = f1_score(y_true, y_pred)
+        cm = confusion_matrix(y_true, y_pred).tolist()
+        
+        # Generate t-SNE visualization
+        tsne_data = generate_tsne_visualization(data, y_true)
+        
+        # Prepare results
+        results = []
+        for i, row in enumerate(data.iterrows()):
+            idx, record = row
+            results.append({
+                'nama_keluarga': record['nama_keluarga'],
+                'actual': 'Stunting' if y_true[i] == 1 else 'Tidak Stunting',
+                'predicted': 'Stunting' if y_pred[i] == 1 else 'Tidak Stunting',
+                'is_correct': y_true[i] == y_pred[i],
+                'prob_stunting': float(y_pred_proba[i, 1]),
+                'prob_tidak_stunting': float(y_pred_proba[i, 0])
+            })
+        
+        # Prepare summary
+        correct_count = sum(1 for res in results if res['is_correct'])
+        total_count = len(results)
+        
+        summary = {
+            'accuracy': accuracy,
+            'precision': precision,
+            'recall': recall,
+            'f1_score': f1,
+            'confusion_matrix': cm,
+            'correct_count': correct_count,
+            'total_count': total_count,
+            'correct_percentage': (correct_count / total_count) * 100 if total_count > 0 else 0
+        }
+        
+        return {
+            'results': results,
+            'summary': summary,
+            'tsne_data': tsne_data
+        }
+    
+    except Exception as e:
+        print(f"Error in batch processing: {str(e)}")
+        return {
+            'error': str(e)
+        }
+
 
 if __name__ == '__main__':
+    # Periksa dan latih model jika belum ada
+    check_and_train_model()
     app.run(debug=True)

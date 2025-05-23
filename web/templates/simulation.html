@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulasi Naive Bayes - Prediksi Stunting</title>    <!-- Bootstrap 4.6 CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/css/bootstrap.min.css" 
+          crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- Font Awesome untuk Ikon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
+          crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- CSS Kustom -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/simulation-styles.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
+        <a class="navbar-brand" href="/"><i class="fas fa-chart-line"></i> Admin Dashboard</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav"
+                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ml-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="/"><i class="fas fa-home"></i> Beranda</a>
+                </li>
+                <li class="nav-item active">
+                    <a class="nav-link" href="/simulation"><i class="fas fa-calculator"></i> Simulasi Naive Bayes</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/open_train_data"><i class="fas fa-user"></i> Buka Data Latih</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/open_test_data"><i class="fas fa-sign-out-alt"></i> Buka Data Uji</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Sidebar dan Konten Utama -->
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+                <div class="sidebar-sticky pt-3">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="/">
+                                <i class="fas fa-tachometer-alt"></i>
+                                Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="/simulation">
+                                <i class="fas fa-calculator"></i>
+                                Simulasi Naive Bayes
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/open_train_data">
+                                <i class="fas fa-users"></i>
+                                Buka Data Latih
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/open_test_data">
+                                <i class="fas fa-cogs"></i>
+                                Buka Data Uji
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>            <!-- Konten Utama -->
+            <main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-md-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">Simulasi Naive Bayes - Prediksi Stunting</h1>
+                </div>                <!-- Tab Navigation -->
+                <ul class="nav nav-tabs" id="simulationTabs" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active" id="manual-tab" data-toggle="tab" href="#manual" role="tab" 
+                           aria-controls="manual" aria-selected="true">
+                           <i class="fas fa-keyboard"></i> Input Manual
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="dataset-tab" data-toggle="tab" href="#dataset" role="tab" 
+                           aria-controls="dataset" aria-selected="false">
+                           <i class="fas fa-database"></i> Data Set
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="batch-tab" data-toggle="tab" href="#batch" role="tab" 
+                           aria-controls="batch" aria-selected="false">
+                           <i class="fas fa-tasks"></i> Batch Processing
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- Tab Content -->
+                <div class="tab-content" id="simulationTabContent">
+                    <!-- Tab Simulasi Manual -->
+                    <div class="tab-pane fade show active" id="manual" role="tabpanel" aria-labelledby="manual-tab">
+                        <!-- Form Input Parameter Manual -->
+                        <div class="row mt-3">
+                            <div class="col-md-12">
+                                <div class="card animated-card">
+                                    <div class="card-header">
+                                        <h5><i class="fas fa-edit"></i> Input Parameter Prediksi</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <form id="simulationForm">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="nama_keluarga">Nama Keluarga:</label>
+                                                <input type="text" class="form-control" id="nama_keluarga" name="nama_keluarga" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="jenis_kelamin">Jenis Kelamin:</label>
+                                                <select class="form-control" id="jenis_kelamin" name="jenis_kelamin" required>
+                                                    <option value="">Pilih Jenis Kelamin</option>
+                                                    <option value="Laki-laki">Laki-laki</option>
+                                                    <option value="Perempuan">Perempuan</option>
+                                                </select>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="usia">Usia (bulan):</label>
+                                                <input type="number" class="form-control" id="usia" name="usia" min="0" max="60" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="tinggi">Tinggi (cm):</label>
+                                                <input type="number" class="form-control" id="tinggi" name="tinggi" min="40" max="120" step="0.1" required>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="berat">Berat (kg):</label>
+                                                <input type="number" class="form-control" id="berat" name="berat" min="2" max="25" step="0.1" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="pendapatan">Pendapatan (IDR):</label>
+                                                <input type="number" class="form-control" id="pendapatan" name="pendapatan" min="0" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="air_bersih">Akses Air Bersih:</label>
+                                                <select class="form-control" id="air_bersih" name="air_bersih" required>
+                                                    <option value="">Pilih Kondisi</option>
+                                                    <option value="Buruk">Buruk</option>
+                                                    <option value="Cukup">Cukup</option>
+                                                    <option value="Baik">Baik</option>
+                                                    <option value="Sangat Baik">Sangat Baik</option>
+                                                </select>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="kondisi_sanitasi">Kondisi Sanitasi:</label>
+                                                <select class="form-control" id="kondisi_sanitasi" name="kondisi_sanitasi" required>
+                                                    <option value="">Pilih Kondisi</option>
+                                                    <option value="Buruk">Buruk</option>
+                                                    <option value="Cukup">Cukup</option>
+                                                    <option value="Baik">Baik</option>
+                                                    <option value="Sangat Baik">Sangat Baik</option>
+                                                </select>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="susu_formula">Pemberian Susu Formula:</label>
+                                                <select class="form-control" id="susu_formula" name="susu_formula" required>
+                                                    <option value="">Pilih</option>
+                                                    <option value="Ya">Ya</option>
+                                                    <option value="Tidak">Tidak</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="text-center">
+                                        <button type="submit" class="btn btn-primary btn-lg">
+                                            <i class="fas fa-calculator"></i> Simulasi Prediksi
+                                        </button>
+                                        <button type="reset" class="btn btn-secondary btn-lg ml-2">
+                                            <i class="fas fa-undo"></i> Reset Form
+                                        </button>
+                                    </div>                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                    </div>
+
+                    <!-- Tab Data Set -->
+                    <div class="tab-pane fade" id="dataset" role="tabpanel" aria-labelledby="dataset-tab">
+                        <!-- Form Pemilihan Data Set -->
+                        <div class="row mt-3">
+                            <div class="col-md-12">
+                                <div class="card animated-card">
+                                    <div class="card-header">
+                                        <h5><i class="fas fa-database"></i> Pilih Data untuk Simulasi</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <form id="datasetForm">
+                                            <div class="form-group">
+                                                <label for="dataSource">Sumber Data:</label>
+                                                <select class="form-control" id="dataSource" name="dataSource" required>
+                                                    <option value="">Pilih Sumber Data</option>
+                                                    <option value="training">Data Training</option>
+                                                    <option value="testing">Data Testing</option>
+                                                </select>
+                                            </div>
+                                            
+                                            <div id="dataRecordContainer" class="form-group" style="display: none;">
+                                                <label for="dataRecord">Pilih Data:</label>
+                                                <select class="form-control" id="dataRecord" name="dataRecord" required>
+                                                    <option value="">Pilih Data</option>
+                                                    <!-- Options akan diisi melalui JavaScript -->
+                                                </select>
+                                            </div>
+                                            
+                                            <div class="text-center">
+                                                <button type="submit" class="btn btn-primary btn-lg">
+                                                    <i class="fas fa-calculator"></i> Simulasi Prediksi
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="dataPreviewContainer" class="row mt-3" style="display: none;">
+                            <div class="col-md-12">
+                                <div class="card animated-card">
+                                    <div class="card-header">
+                                        <h5><i class="fas fa-table"></i> Preview Data Terpilih</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="table-responsive">
+                                            <table class="table table-striped table-bordered">
+                                                <thead class="thead-dark">
+                                                    <tr>
+                                                        <th>Parameter</th>
+                                                        <th>Nilai</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="dataPreview">
+                                                    <!-- Data preview akan diisi melalui JavaScript -->
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>                    </div>
+                    
+                    <!-- Tab Batch Processing -->
+                    <div class="tab-pane fade" id="batch" role="tabpanel" aria-labelledby="batch-tab">
+                        <div class="row mt-3">
+                            <div class="col-md-12">
+                                <div class="card animated-card">
+                                    <div class="card-header">
+                                        <h5><i class="fas fa-tasks"></i> Batch Process Data Testing</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <p class="alert alert-info">
+                                            <i class="fas fa-info-circle"></i> Batch processing akan menjalankan prediksi Naive Bayes 
+                                            pada seluruh data testing dan membandingkan hasilnya dengan nilai aktual.
+                                        </p>
+                                        <div class="text-center mb-3">
+                                            <button id="runBatchProcessing" class="btn btn-primary btn-lg">
+                                                <i class="fas fa-play-circle"></i> Jalankan Batch Processing
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Hasil Batch Processing -->
+                        <div id="batchResults" class="mt-4" style="display: none;">
+                            <!-- Summary Metrics -->
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="card animated-card">
+                                        <div class="card-header">
+                                            <h5><i class="fas fa-chart-pie"></i> Ringkasan Metrik</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <div class="table-responsive">
+                                                        <table class="table table-striped table-bordered">
+                                                            <thead class="thead-dark">
+                                                                <tr>
+                                                                    <th>Metrik</th>
+                                                                    <th>Nilai</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody id="metricsTableBody">
+                                                                <!-- Data akan diisi oleh JavaScript -->
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <canvas id="accuracyChart" height="200"></canvas>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Confusion Matrix -->
+                            <div class="row mt-4">
+                                <div class="col-md-6">
+                                    <div class="card animated-card">
+                                        <div class="card-header">
+                                            <h5><i class="fas fa-table"></i> Confusion Matrix</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <div id="confusionMatrix" class="confusion-matrix-container" style="height: 700px;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card animated-card">
+                                        <div class="card-header">
+                                            <h5><i class="fas fa-random"></i> t-SNE Visualization</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <div id="tsneViz" style="height: 700px;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Detail Prediksi -->
+                            <div class="row mt-4">
+                                <div class="col-md-12">
+                                    <div class="card animated-card">
+                                        <div class="card-header">
+                                            <h5><i class="fas fa-list"></i> Detail Hasil Prediksi</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="table-responsive">
+                                                <table class="table table-striped table-bordered" id="predictionTable">
+                                                    <thead class="thead-dark">
+                                                        <tr>
+                                                            <th>Nama Keluarga</th>
+                                                            <th>Status Aktual</th>
+                                                            <th>Status Prediksi</th>
+                                                            <th>Akurasi</th>
+                                                            <th>P(Stunting)</th>
+                                                            <th>P(Tidak Stunting)</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody id="predictionTableBody">
+                                                        <!-- Data akan diisi oleh JavaScript -->
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Loading Indicator -->
+                <div id="loadingIndicator" class="row mt-4" style="display: none;">
+                    <div class="col-12 text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="sr-only">Loading...</span>
+                        </div>
+                        <p>Memproses simulasi Naive Bayes...</p>
+                    </div>
+                </div>
+
+                <!-- Hasil Simulasi -->
+                <div id="simulationResults" class="mt-4" style="display: none;">
+                    <!-- Proses Perhitungan Step by Step -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="card animated-card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-cogs"></i> Proses Perhitungan Naive Bayes</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="calculationSteps"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Visualisasi Grafik -->
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <div class="card animated-card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-chart-bar"></i> Probabilitas Prior</h5>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="priorChart" height="300"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card animated-card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-chart-pie"></i> Probabilitas Likelihood</h5>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="likelihoodChart" height="300"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Visualisasi 3D Plot -->
+                    <div class="row mt-4">
+                        <div class="col-md-12">
+                            <div class="card animated-card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-cube"></i> Visualisasi 3D - Distribusi Data</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="plot3d" style="height: 500px;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Hasil Akhir -->
+                    <div class="row mt-4">
+                        <div class="col-md-12">
+                            <div class="card animated-card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-trophy"></i> Hasil Prediksi</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="alert alert-info">
+                                                <h4>Hasil Prediksi: <span id="predictionResult" class="font-weight-bold"></span></h4>
+                                                <p>Confidence Score: <span id="confidenceScore" class="font-weight-bold"></span>%</p>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <canvas id="resultChart" height="200"></canvas>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Tabel Detail Perhitungan -->
+                                    <div class="table-responsive mt-3">
+                                        <table class="table table-striped table-bordered">
+                                            <thead class="thead-dark">
+                                                <tr>
+                                                    <th>Parameter</th>
+                                                    <th>Nilai Input</th>
+                                                    <th>P(X|Stunting)</th>
+                                                    <th>P(X|Tidak Stunting)</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="detailTable">
+                                                <!-- Data akan diisi melalui JavaScript -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>    <!-- Bootstrap JS dan dependencies -->
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"
+            crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/js/bootstrap.bundle.min.js" 
+            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="{{ url_for('static', filename='js/simulation.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/batch-simulation.js') }}"></script>
+</body>
+</html>
