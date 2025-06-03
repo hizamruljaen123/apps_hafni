@@ -5,6 +5,7 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 from sklearn.manifold import TSNE
 from sklearn.impute import SimpleImputer
+from sklearn.feature_selection import RFE
 import plotly.express as px
 import plotly.io as pio
 import plotly.graph_objects as go
@@ -96,6 +97,289 @@ def preprocess_data(data):
     selected_columns = ['pendapatan', 'tinggi', 'berat', 'jenis_kelamin', 'air_bersih', 'kondisi_sanitasi', 'susu_formula']
     X_data = data[selected_columns]
     return X_data
+
+# Feature Selection with Backward Elimination
+def perform_backward_elimination(X, y, feature_names):
+    """
+    Perform backward elimination feature selection using Naive Bayes
+    Returns selected features and their importance scores
+    """
+    try:
+        # Initialize with all features
+        n_features = X.shape[1]
+        feature_scores = {}
+        elimination_steps = []
+        
+        # Create initial model with all features
+        model = GaussianNB()
+        model.fit(X, y)
+        
+        # Get baseline accuracy with all features
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        model.fit(X_train, y_train)
+        y_pred = model.predict(X_test)
+        baseline_accuracy = accuracy_score(y_test, y_pred)
+        
+        current_features = list(range(n_features))
+        current_feature_names = feature_names.copy()
+        
+        # Step 1: Record initial state
+        elimination_steps.append({
+            'step': 0,
+            'action': 'Initial state with all features',
+            'features': current_feature_names.copy(),
+            'accuracy': baseline_accuracy,
+            'removed_feature': None
+        })
+        
+        # Backward elimination process
+        step = 1
+        while len(current_features) > 1:
+            worst_feature_idx = None
+            best_accuracy = -1
+            
+            # Try removing each feature and see which removal gives best accuracy
+            for i, feature_idx in enumerate(current_features):
+                # Create feature set without this feature
+                temp_features = [f for j, f in enumerate(current_features) if j != i]
+                X_temp = X[:, temp_features]
+                
+                # Train and evaluate model
+                X_train_temp, X_test_temp, y_train_temp, y_test_temp = train_test_split(
+                    X_temp, y, test_size=0.2, random_state=42
+                )
+                
+                model_temp = GaussianNB()
+                model_temp.fit(X_train_temp, y_train_temp)
+                y_pred_temp = model_temp.predict(X_test_temp)
+                accuracy_temp = accuracy_score(y_test_temp, y_pred_temp)
+                
+                # If removing this feature improves or maintains accuracy, consider it
+                if accuracy_temp >= best_accuracy:
+                    best_accuracy = accuracy_temp
+                    worst_feature_idx = i
+            
+            # If no improvement found, stop elimination
+            if worst_feature_idx is None or best_accuracy < baseline_accuracy - 0.05:  # Allow 5% accuracy drop
+                break
+                
+            # Remove the worst feature
+            removed_feature_name = current_feature_names[worst_feature_idx]
+            current_features.pop(worst_feature_idx)
+            current_feature_names.pop(worst_feature_idx)
+            
+            # Record elimination step
+            elimination_steps.append({
+                'step': step,
+                'action': f'Removed feature: {removed_feature_name}',
+                'features': current_feature_names.copy(),
+                'accuracy': best_accuracy,
+                'removed_feature': removed_feature_name
+            })
+            
+            step += 1
+            
+            # Update baseline for next iteration
+            baseline_accuracy = best_accuracy
+        
+        # Calculate feature importance for remaining features
+        for i, feature_name in enumerate(current_feature_names):
+            # Calculate importance by measuring accuracy drop when feature is removed
+            temp_features = [j for j in range(len(current_features)) if j != i]
+            if len(temp_features) > 0:
+                X_without_feature = X[:, [current_features[j] for j in temp_features]]
+                X_train_temp, X_test_temp, y_train_temp, y_test_temp = train_test_split(
+                    X_without_feature, y, test_size=0.2, random_state=42
+                )
+                model_temp = GaussianNB()
+                model_temp.fit(X_train_temp, y_train_temp)
+                y_pred_temp = model_temp.predict(X_test_temp)
+                accuracy_without = accuracy_score(y_test_temp, y_pred_temp)
+                
+                # Importance is the accuracy drop when feature is removed
+                importance = baseline_accuracy - accuracy_without
+                feature_scores[feature_name] = max(0, importance)  # Ensure non-negative
+            else:
+                feature_scores[feature_name] = 1.0  # Only feature left, highest importance
+        
+        return {
+            'selected_features': current_feature_names,
+            'selected_feature_indices': current_features,
+            'feature_scores': feature_scores,
+            'elimination_steps': elimination_steps,
+            'final_accuracy': baseline_accuracy
+        }
+        
+    except Exception as e:
+        print(f"Error in backward elimination: {str(e)}")
+        return {
+            'selected_features': feature_names,
+            'selected_feature_indices': list(range(len(feature_names))),
+            'feature_scores': {name: 1.0 for name in feature_names},
+            'elimination_steps': [],
+            'final_accuracy': 0.0
+        }
+
+def perform_backward_elimination_safe(X, y, feature_names):
+    """
+    Safe version of backward elimination that handles preprocessed data properly
+    """
+    try:
+        # Ensure X and y are clean (no NaN values)
+        if np.isnan(X).any():
+            print("Warning: NaN values detected in X, using imputer...")
+            imputer = SimpleImputer(strategy='mean')
+            X = imputer.fit_transform(X)
+            
+        if np.isnan(y).any():
+            print("Warning: NaN values detected in y, removing...")
+            valid_indices = ~np.isnan(y)
+            X = X[valid_indices]
+            y = y[valid_indices]
+        
+        # Convert to appropriate data types
+        X = np.array(X, dtype=np.float64)
+        y = np.array(y, dtype=np.int32)
+        
+        # Initialize with all features
+        n_features = X.shape[1]
+        feature_scores = {}
+        elimination_steps = []
+        
+        # Get baseline accuracy with all features
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+        
+        # Create and train initial model
+        model = GaussianNB()
+        model.fit(X_train, y_train)
+        y_pred = model.predict(X_test)
+        baseline_accuracy = accuracy_score(y_test, y_pred)
+        
+        current_features = list(range(n_features))
+        current_feature_names = feature_names.copy()
+        
+        # Step 1: Record initial state
+        elimination_steps.append({
+            'step': 0,
+            'action': 'Initial state with all features',
+            'features': current_feature_names.copy(),
+            'accuracy': baseline_accuracy,
+            'removed_feature': None
+        })
+        
+        # Backward elimination process
+        step = 1
+        max_iterations = len(feature_names) - 1  # Prevent infinite loop
+        
+        while len(current_features) > 1 and step <= max_iterations:
+            worst_feature_idx = None
+            best_accuracy = -1
+            
+            # Try removing each feature and see which removal gives best accuracy
+            for i, feature_idx in enumerate(current_features):
+                try:
+                    # Create feature set without this feature
+                    temp_features = [current_features[j] for j in range(len(current_features)) if j != i]
+                    X_temp = X[:, temp_features]
+                    
+                    # Ensure no NaN values in temporary data
+                    if np.isnan(X_temp).any():
+                        continue
+                    
+                    # Train and evaluate model
+                    X_train_temp, X_test_temp, y_train_temp, y_test_temp = train_test_split(
+                        X_temp, y, test_size=0.2, random_state=42, stratify=y
+                    )
+                    
+                    model_temp = GaussianNB()
+                    model_temp.fit(X_train_temp, y_train_temp)
+                    y_pred_temp = model_temp.predict(X_test_temp)
+                    accuracy_temp = accuracy_score(y_test_temp, y_pred_temp)
+                    
+                    # If removing this feature improves or maintains accuracy, consider it
+                    if accuracy_temp >= best_accuracy:
+                        best_accuracy = accuracy_temp
+                        worst_feature_idx = i
+                        
+                except Exception as e:
+                    print(f"Error evaluating feature {i}: {str(e)}")
+                    continue
+            
+            # If no improvement found, stop elimination
+            if worst_feature_idx is None or best_accuracy < baseline_accuracy - 0.1:  # Allow 10% accuracy drop
+                break
+                
+            # Remove the worst feature
+            removed_feature_name = current_feature_names[worst_feature_idx]
+            current_features.pop(worst_feature_idx)
+            current_feature_names.pop(worst_feature_idx)
+            
+            # Record elimination step
+            elimination_steps.append({
+                'step': step,
+                'action': f'Removed feature: {removed_feature_name}',
+                'features': current_feature_names.copy(),
+                'accuracy': best_accuracy,
+                'removed_feature': removed_feature_name
+            })
+            
+            step += 1
+            
+            # Update baseline for next iteration
+            baseline_accuracy = best_accuracy
+        
+        # Calculate feature importance for remaining features
+        for i, feature_name in enumerate(current_feature_names):
+            try:
+                # Calculate importance by measuring accuracy drop when feature is removed
+                if len(current_features) > 1:
+                    temp_features = [current_features[j] for j in range(len(current_features)) if j != i]
+                    X_without_feature = X[:, temp_features]
+                    
+                    if not np.isnan(X_without_feature).any():
+                        X_train_temp, X_test_temp, y_train_temp, y_test_temp = train_test_split(
+                            X_without_feature, y, test_size=0.2, random_state=42, stratify=y
+                        )
+                        model_temp = GaussianNB()
+                        model_temp.fit(X_train_temp, y_train_temp)
+                        y_pred_temp = model_temp.predict(X_test_temp)
+                        accuracy_without = accuracy_score(y_test_temp, y_pred_temp)
+                        
+                        # Importance is the accuracy drop when feature is removed
+                        importance = baseline_accuracy - accuracy_without
+                        feature_scores[feature_name] = max(0, importance)  # Ensure non-negative
+                    else:
+                        feature_scores[feature_name] = 0.5  # Default moderate importance
+                else:
+                    feature_scores[feature_name] = 1.0  # Only feature left, highest importance
+            except Exception as e:
+                print(f"Error calculating importance for {feature_name}: {str(e)}")
+                feature_scores[feature_name] = 0.5  # Default moderate importance
+        
+        return {
+            'selected_features': current_feature_names,
+            'selected_feature_indices': current_features,
+            'feature_scores': feature_scores,
+            'elimination_steps': elimination_steps,
+            'final_accuracy': baseline_accuracy
+        }
+        
+    except Exception as e:
+        print(f"Error in safe backward elimination: {str(e)}")
+        # Return safe defaults
+        return {
+            'selected_features': feature_names,
+            'selected_feature_indices': list(range(len(feature_names))),
+            'feature_scores': {name: 1.0 for name in feature_names},
+            'elimination_steps': [{
+                'step': 0,
+                'action': 'Error occurred, using all features',
+                'features': feature_names,
+                'accuracy': 0.0,
+                'removed_feature': None
+            }],
+            'final_accuracy': 0.0
+        }
 
 # Route for home page to display form and chart
 @app.route('/')
@@ -334,7 +618,58 @@ def simulate_naive_bayes():
         # Detail calculations untuk tabel
         detailed_calc = calculate_detailed_probabilities(train_data, processed_input)
         
-        # Format hasil
+        # Perform Feature Selection Analysis (terintegrasi)
+        print("Menjalankan Feature Selection...")
+        X = preprocess_data(train_data)
+        y = train_data['status_stunting'].map({'Tidak': 0, 'Ya': 1})
+        feature_names = ['pendapatan', 'tinggi', 'berat', 'jenis_kelamin', 'air_bersih', 'kondisi_sanitasi', 'susu_formula']
+        
+        # Perform backward elimination
+        feature_selection_results = perform_backward_elimination(X.values, y.values, feature_names)
+        
+        # Calculate model comparison
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        
+        # Original model with all features
+        original_model = GaussianNB()
+        original_model.fit(X_train, y_train)
+        y_pred_original = original_model.predict(X_test)
+        original_metrics = {
+            'accuracy': accuracy_score(y_test, y_pred_original),
+            'precision': precision_score(y_test, y_pred_original),
+            'recall': recall_score(y_test, y_pred_original),
+            'f1_score': f1_score(y_test, y_pred_original)
+        }
+        
+        # Model with selected features only
+        X_selected = X.iloc[:, feature_selection_results['selected_feature_indices']]
+        X_train_selected, X_test_selected, y_train_selected, y_test_selected = train_test_split(
+            X_selected, y, test_size=0.2, random_state=42
+        )
+        
+        selected_model = GaussianNB()
+        selected_model.fit(X_train_selected, y_train_selected)
+        y_pred_selected = selected_model.predict(X_test_selected)
+        selected_metrics = {
+            'accuracy': accuracy_score(y_test_selected, y_pred_selected),
+            'precision': precision_score(y_test_selected, y_pred_selected),
+            'recall': recall_score(y_test_selected, y_pred_selected),
+            'f1_score': f1_score(y_test_selected, y_pred_selected)
+        }
+        
+        # Prepare feature importance data for visualization
+        feature_importance_data = {
+            'features': list(feature_selection_results['feature_scores'].keys()),
+            'scores': list(feature_selection_results['feature_scores'].values())
+        }
+        
+        # Sort features by importance
+        sorted_features = sorted(zip(feature_importance_data['features'], feature_importance_data['scores']),
+                               key=lambda x: x[1], reverse=True)
+        feature_importance_data['features'] = [f[0] for f in sorted_features]
+        feature_importance_data['scores'] = [f[1] for f in sorted_features]
+        
+        # Format hasil dengan feature selection terintegrasi
         result = {
             'prediction': 'Stunting' if prediction == 1 else 'Tidak Stunting',
             'confidence': float(max(prediction_proba)),
@@ -346,7 +681,23 @@ def simulate_naive_bayes():
             'prior_probabilities': prior_probs,
             'likelihood_probabilities': likelihood_probs,
             'plot_data': plot_data,
-            'detailed_calculations': detailed_calc
+            'detailed_calculations': detailed_calc,
+            'feature_selection': {
+                'success': True,
+                'selected_features': feature_selection_results['selected_features'],
+                'eliminated_features': [f for f in feature_names if f not in feature_selection_results['selected_features']],
+                'elimination_steps': feature_selection_results['elimination_steps'],
+                'feature_importance': feature_importance_data,
+                'original_metrics': original_metrics,
+                'selected_metrics': selected_metrics,
+                'improvement': {
+                    'accuracy': selected_metrics['accuracy'] - original_metrics['accuracy'],
+                    'precision': selected_metrics['precision'] - original_metrics['precision'],
+                    'recall': selected_metrics['recall'] - original_metrics['recall'],
+                    'f1_score': selected_metrics['f1_score'] - original_metrics['f1_score']
+                },
+                'feature_count_reduction': len(feature_names) - len(feature_selection_results['selected_features'])
+            }
         }
         
         return jsonify(result)
@@ -648,8 +999,7 @@ def compute_batch_predictions(data):
         
         # Generate t-SNE visualization
         tsne_data = generate_tsne_visualization(data, y_true)
-        
-        # Prepare results
+          # Prepare results
         results = []
         for i, row in enumerate(data.iterrows()):
             idx, record = row
@@ -657,7 +1007,7 @@ def compute_batch_predictions(data):
                 'nama_keluarga': record['nama_keluarga'],
                 'actual': 'Stunting' if y_true[i] == 1 else 'Tidak Stunting',
                 'predicted': 'Stunting' if y_pred[i] == 1 else 'Tidak Stunting',
-                'is_correct': y_true[i] == y_pred[i],
+                'is_correct': bool(y_true[i] == y_pred[i]),  # Ensure it's a proper boolean
                 'prob_stunting': float(y_pred_proba[i, 1]),
                 'prob_tidak_stunting': float(y_pred_proba[i, 0])
             })
@@ -677,10 +1027,88 @@ def compute_batch_predictions(data):
             'correct_percentage': (correct_count / total_count) * 100 if total_count > 0 else 0
         }
         
+        # STEP 2: Feature Selection Analysis (setelah Naive Bayes selesai)
+        print("Menjalankan Feature Selection untuk Batch Processing...")
+        
+        # Use the same preprocessed data from Naive Bayes step to avoid inconsistency
+        feature_names = ['pendapatan', 'tinggi', 'berat', 'jenis_kelamin', 'air_bersih', 'kondisi_sanitasi', 'susu_formula']
+        
+        # Handle missing values properly for feature selection
+        imputer_fs = SimpleImputer(strategy='mean')
+        X_full_clean = imputer_fs.fit_transform(X_imputed)  # Use already processed data
+        y_full = y_true  # Use already mapped labels
+        
+        # Perform backward elimination with clean data
+        feature_selection_results = perform_backward_elimination_safe(X_full_clean, y_full, feature_names)
+        
+        # Calculate model comparison untuk batch (using clean data)
+        X_train_batch, X_test_batch, y_train_batch, y_test_batch = train_test_split(
+            X_full_clean, y_full, test_size=0.2, random_state=42, stratify=y_full
+        )
+        
+        # Original model with all features
+        original_model_batch = GaussianNB()
+        original_model_batch.fit(X_train_batch, y_train_batch)
+        y_pred_original_batch = original_model_batch.predict(X_test_batch)
+        original_metrics_batch = {
+            'accuracy': accuracy_score(y_test_batch, y_pred_original_batch),
+            'precision': precision_score(y_test_batch, y_pred_original_batch, zero_division=0),
+            'recall': recall_score(y_test_batch, y_pred_original_batch, zero_division=0),
+            'f1_score': f1_score(y_test_batch, y_pred_original_batch, zero_division=0)
+        }
+        
+        # Model with selected features only (if any were selected)
+        if len(feature_selection_results['selected_feature_indices']) > 0:
+            X_selected_batch = X_full_clean[:, feature_selection_results['selected_feature_indices']]
+            X_train_selected_batch, X_test_selected_batch, y_train_selected_batch, y_test_selected_batch = train_test_split(
+                X_selected_batch, y_full, test_size=0.2, random_state=42, stratify=y_full
+            )
+            
+            selected_model_batch = GaussianNB()
+            selected_model_batch.fit(X_train_selected_batch, y_train_selected_batch)
+            y_pred_selected_batch = selected_model_batch.predict(X_test_selected_batch)
+            selected_metrics_batch = {
+                'accuracy': accuracy_score(y_test_selected_batch, y_pred_selected_batch),
+                'precision': precision_score(y_test_selected_batch, y_pred_selected_batch, zero_division=0),
+                'recall': recall_score(y_test_selected_batch, y_pred_selected_batch, zero_division=0),
+                'f1_score': f1_score(y_test_selected_batch, y_pred_selected_batch, zero_division=0)
+            }
+        else:
+            # If no features selected, use original metrics
+            selected_metrics_batch = original_metrics_batch.copy()
+        
+        # Prepare feature importance data for visualization
+        feature_importance_data_batch = {
+            'features': list(feature_selection_results['feature_scores'].keys()),
+            'scores': list(feature_selection_results['feature_scores'].values())
+        }
+        
+        # Sort features by importance
+        sorted_features_batch = sorted(zip(feature_importance_data_batch['features'], feature_importance_data_batch['scores']),
+                                     key=lambda x: x[1], reverse=True)
+        feature_importance_data_batch['features'] = [f[0] for f in sorted_features_batch]
+        feature_importance_data_batch['scores'] = [f[1] for f in sorted_features_batch]
+
         return {
             'results': results,
             'summary': summary,
-            'tsne_data': tsne_data
+            'tsne_data': tsne_data,
+            'feature_selection': {
+                'success': True,
+                'selected_features': feature_selection_results['selected_features'],
+                'eliminated_features': [f for f in feature_names if f not in feature_selection_results['selected_features']],
+                'elimination_steps': feature_selection_results['elimination_steps'],
+                'feature_importance': feature_importance_data_batch,
+                'original_metrics': original_metrics_batch,
+                'selected_metrics': selected_metrics_batch,
+                'improvement': {
+                    'accuracy': selected_metrics_batch['accuracy'] - original_metrics_batch['accuracy'],
+                    'precision': selected_metrics_batch['precision'] - original_metrics_batch['precision'],
+                    'recall': selected_metrics_batch['recall'] - original_metrics_batch['recall'],
+                    'f1_score': selected_metrics_batch['f1_score'] - original_metrics_batch['f1_score']
+                },
+                'feature_count_reduction': len(feature_names) - len(feature_selection_results['selected_features'])
+            }
         }
     
     except Exception as e:
@@ -689,6 +1117,130 @@ def compute_batch_predictions(data):
             'error': str(e)
         }
 
+@app.route('/analysis_by_age', methods=['GET'])
+def analysis_by_age():
+    """
+    Analisis distribusi stunting berdasarkan usia balita.
+    Mengembalikan data untuk grafik dan tabel (jumlah stunting/tidak stunting per rentang usia).
+    """
+    # Coba baca data hasil prediksi (data_uji_dengan_prediksi.xlsx)
+    try:
+        df = pd.read_excel('../data_uji_dengan_prediksi.xlsx')
+    except Exception:
+        try:
+            df = pd.read_excel('data_uji_dengan_prediksi.xlsx')
+        except Exception:
+            return jsonify({'error': 'Data tidak ditemukan'}), 404
+
+    # Pastikan kolom usia dan status_stunting_predicted ada
+    if 'usia' not in df.columns or 'status_stunting_predicted' not in df.columns:
+        return jsonify({'error': 'Kolom usia atau status_stunting_predicted tidak ditemukan'}), 400
+
+    # Normalisasi label prediksi
+    df['status_stunting_predicted'] = df['status_stunting_predicted'].replace({1: 'Stunting', 0: 'Tidak Stunting', 'Ya': 'Stunting', 'Tidak': 'Tidak Stunting'})
+
+    # Buat rentang usia (misal: 0-11, 12-23, 24-35, 36-47, 48-60 bulan)
+    bins = [0, 12, 24, 36, 48, 60]
+    labels = ['0-11', '12-23', '24-35', '36-47', '48-60']
+    df['usia_group'] = pd.cut(df['usia'], bins=bins, labels=labels, right=False, include_lowest=True)
+
+    # Hitung jumlah stunting/tidak stunting per kelompok usia
+    summary = df.groupby(['usia_group', 'status_stunting_predicted']).size().unstack(fill_value=0).reset_index()
+
+    # Untuk grafik: data per kelompok usia
+    chart_data = {
+        'usia_group': summary['usia_group'].astype(str).tolist(),
+        'Stunting': summary.get('Stunting', pd.Series([0]*len(summary))).tolist(),
+        'Tidak Stunting': summary.get('Tidak Stunting', pd.Series([0]*len(summary))).tolist()
+    }
+    # Untuk tabel: data mentah
+    table_data = summary.to_dict(orient='records')
+
+    return jsonify({'chart_data': chart_data, 'table_data': table_data})
+
+@app.route('/api/feature_selection', methods=['GET'])
+def feature_selection_analysis():
+    """
+    Perform feature selection using backward elimination
+    """
+    try:
+        # Load training data
+        data = pd.read_excel(train_file_path)
+        
+        # Preprocess the data
+        X = preprocess_data(data)
+        y = data['status_stunting'].map({'Tidak': 0, 'Ya': 1})
+        
+        # Get feature names
+        feature_names = ['pendapatan', 'tinggi', 'berat', 'jenis_kelamin', 'air_bersih', 'kondisi_sanitasi', 'susu_formula']
+        
+        # Perform backward elimination
+        results = perform_backward_elimination(X.values, y.values, feature_names)
+        
+        # Calculate original model performance for comparison
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        
+        # Original model with all features
+        original_model = GaussianNB()
+        original_model.fit(X_train, y_train)
+        y_pred_original = original_model.predict(X_test)
+        original_metrics = {
+            'accuracy': accuracy_score(y_test, y_pred_original),
+            'precision': precision_score(y_test, y_pred_original),
+            'recall': recall_score(y_test, y_pred_original),
+            'f1_score': f1_score(y_test, y_pred_original)
+        }
+        
+        # Model with selected features only
+        X_selected = X.iloc[:, results['selected_feature_indices']]
+        X_train_selected, X_test_selected, y_train_selected, y_test_selected = train_test_split(
+            X_selected, y, test_size=0.2, random_state=42
+        )
+        
+        selected_model = GaussianNB()
+        selected_model.fit(X_train_selected, y_train_selected)
+        y_pred_selected = selected_model.predict(X_test_selected)
+        selected_metrics = {
+            'accuracy': accuracy_score(y_test_selected, y_pred_selected),
+            'precision': precision_score(y_test_selected, y_pred_selected),
+            'recall': recall_score(y_test_selected, y_pred_selected),
+            'f1_score': f1_score(y_test_selected, y_pred_selected)
+        }
+        
+        # Prepare feature importance data for visualization
+        feature_importance_data = {
+            'features': list(results['feature_scores'].keys()),
+            'scores': list(results['feature_scores'].values())
+        }
+        
+        # Sort features by importance
+        sorted_features = sorted(zip(feature_importance_data['features'], feature_importance_data['scores']),
+                               key=lambda x: x[1], reverse=True)
+        feature_importance_data['features'] = [f[0] for f in sorted_features]
+        feature_importance_data['scores'] = [f[1] for f in sorted_features]
+        
+        return jsonify({
+            'success': True,
+            'selected_features': results['selected_features'],
+            'eliminated_features': [f for f in feature_names if f not in results['selected_features']],
+            'elimination_steps': results['elimination_steps'],
+            'feature_importance': feature_importance_data,
+            'original_metrics': original_metrics,
+            'selected_metrics': selected_metrics,
+            'improvement': {
+                'accuracy': selected_metrics['accuracy'] - original_metrics['accuracy'],
+                'precision': selected_metrics['precision'] - original_metrics['precision'],
+                'recall': selected_metrics['recall'] - original_metrics['recall'],
+                'f1_score': selected_metrics['f1_score'] - original_metrics['f1_score']
+            },
+            'feature_count_reduction': len(feature_names) - len(results['selected_features'])
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 if __name__ == '__main__':
     # Periksa dan latih model jika belum ada

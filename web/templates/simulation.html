@@ -14,6 +14,59 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/simulation-styles.css') }}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+    
+    <style>
+        /* Feature Selection Card Styling */
+        .bg-gradient-warning {
+            background: linear-gradient(135deg, #f8c146 0%, #ff6b6b 100%);
+            color: white !important;
+        }
+        
+        .bg-gradient-warning .text-dark {
+            color: rgba(0,0,0,0.8) !important;
+        }
+        
+        .animated-card {
+            transition: all 0.3s ease;
+        }
+        
+        .animated-card:hover {
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            transform: translateY(-2px);
+        }
+        
+        #featureSelectionCard, #batchFeatureSelectionCard {
+            border: 2px solid #f8c146;
+            box-shadow: 0 4px 15px rgba(248, 193, 70, 0.3);
+        }
+        
+        /* Smooth scroll behavior */
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        /* Loading animation for feature selection */
+        .feature-loading {
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+        }
+        
+        .feature-loaded {
+            opacity: 1;
+            animation: fadeInUp 0.5s ease;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
 </head>
 <body>
     <!-- Navbar -->
@@ -93,7 +146,7 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" id="batch-tab" data-toggle="tab" href="#batch" role="tab" 
+                        <a class="nav-link" id="batch-tab" data-toggle="tab" href="#batch" role="tab"
                            aria-controls="batch" aria-selected="false">
                            <i class="fas fa-tasks"></i> Batch Processing
                         </a>
@@ -311,7 +364,7 @@
                                 </div>
                             </div>
                             
-                            <!-- Confusion Matrix -->
+                            <!-- Confusion Matrix dan t-SNE Visualization -->
                             <div class="row mt-4">
                                 <div class="col-md-6">
                                     <div class="card animated-card">
@@ -334,18 +387,35 @@
                                     </div>
                                 </div>
                             </div>
-                            
-                            <!-- Detail Prediksi -->
-                            <div class="row mt-4">
+                        </div>
+                        
+                        <!-- Card Feature Selection untuk Batch Processing -->
+                        <div class="card mt-4 animated-card" id="batchFeatureSelectionCard" style="display: none;">
+                            <div class="card-header bg-gradient-warning text-dark">
+                                <h4 class="mb-0">
+                                    <i class="fas fa-filter"></i>
+                                    Analisis Feature Selection - Backward Elimination
+                                    <span class="badge badge-info ml-2">Batch Processing</span>
+                                </h4>
+                                <small class="text-muted">Proses otomatis untuk mengoptimalkan fitur pada batch processing</small>
+                            </div>
+                            <div class="card-body">
+                                <!-- Content akan diisi oleh JavaScript dengan visualisasi lengkap -->
+                            </div>
+                        </div>
+                        
+                        <!-- Detail Hasil Prediksi - Dipisah ke bawah -->
+                        <div id="batchPredictionDetails" class="mt-4" style="display: none;">
+                            <div class="row">
                                 <div class="col-md-12">
                                     <div class="card animated-card">
                                         <div class="card-header">
                                             <h5><i class="fas fa-list"></i> Detail Hasil Prediksi</h5>
                                         </div>
                                         <div class="card-body">
-                                            <div class="table-responsive">
-                                                <table class="table table-striped table-bordered" id="predictionTable">
-                                                    <thead class="thead-dark">
+                                            <div class="table-responsive" style="max-height: 750px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 0.375rem;">
+                                                <table class="table table-striped table-bordered mb-0" id="predictionTable">
+                                                    <thead class="thead-dark sticky-top">
                                                         <tr>
                                                             <th>Nama Keluarga</th>
                                                             <th>Status Aktual</th>
@@ -365,6 +435,8 @@
                                 </div>
                             </div>
                         </div>
+                        
+                    </div>
                     </div>
                 </div>
 
@@ -453,9 +525,9 @@
                                     </div>
                                     
                                     <!-- Tabel Detail Perhitungan -->
-                                    <div class="table-responsive mt-3">
-                                        <table class="table table-striped table-bordered">
-                                            <thead class="thead-dark">
+                                    <div class="table-responsive mt-3" style="max-height: 750px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 0.375rem;">
+                                        <table class="table table-striped table-bordered mb-0">
+                                            <thead class="thead-dark sticky-top">
                                                 <tr>
                                                     <th>Parameter</th>
                                                     <th>Nilai Input</th>
@@ -468,19 +540,196 @@
                                             </tbody>
                                         </table>
                                     </div>
+                                    
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
+               </div>
+               
+               <!-- Card Feature Selection - Hybrid Processing -->
+               <div class="card mt-4 animated-card" id="featureSelectionCard" style="display: none;">
+                   <div class="card-header bg-gradient-warning text-dark">
+                       <h4 class="mb-0">
+                           <i class="fas fa-filter"></i>
+                           Analisis Feature Selection - Backward Elimination
+                           <span class="badge badge-info ml-2">Hybrid Processing</span>
+                       </h4>
+                       <small class="text-muted">Proses otomatis untuk mengoptimalkan fitur prediksi stunting</small>
+                   </div>
+                   <div class="card-body">
+                       <!-- Ringkasan Hasil Backward Elimination -->
+                       <div class="row mb-4">
+                           <div class="col-md-12">
+                               <div class="alert alert-info">
+                                   <h6><i class="fas fa-info-circle"></i> Ringkasan Hasil Backward Elimination</h6>
+                                   <div id="backwardEliminationSummary"></div>
+                               </div>
+                           </div>
+                       </div>
+                       
+                       <div class="row">
+                           <div class="col-md-6">
+                               <div class="card border-warning">
+                                   <div class="card-header bg-warning text-dark">
+                                       <h6><i class="fas fa-chart-bar"></i> Perbandingan Model</h6>
+                                   </div>
+                                   <div class="card-body">
+                                       <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                                           <table class="table table-sm table-striped">
+                                               <thead class="thead-dark sticky-top">
+                                                   <tr>
+                                                       <th>Metrik</th>
+                                                       <th>Asli</th>
+                                                       <th>Terpilih</th>
+                                                       <th>Perubahan</th>
+                                                   </tr>
+                                               </thead>
+                                               <tbody id="modelComparisonTable">
+                                               </tbody>
+                                           </table>
+                                       </div>
+                                   </div>
+                               </div>
+                           </div>
+                           <div class="col-md-6">
+                               <div class="card border-warning">
+                                   <div class="card-header bg-warning text-dark">
+                                       <h6><i class="fas fa-chart-pie"></i> Feature Importance</h6>
+                                   </div>
+                                   <div class="card-body">
+                                       <canvas id="featureImportanceChart" height="200"></canvas>
+                                   </div>
+                               </div>
+                           </div>
+                       </div>
+                       
+                       <div class="row mt-3">
+                           <div class="col-md-6">
+                               <div class="card border-success">
+                                   <div class="card-header bg-success text-white">
+                                       <h6><i class="fas fa-check"></i> Fitur Terpilih</h6>
+                                   </div>
+                                   <div class="card-body" style="max-height: 200px; overflow-y: auto;">
+                                       <div id="selectedFeaturesList"></div>
+                                   </div>
+                               </div>
+                           </div>
+                           <div class="col-md-6">
+                               <div class="card border-danger">
+                                   <div class="card-header bg-danger text-white">
+                                       <h6><i class="fas fa-times"></i> Fitur Tereliminasi</h6>
+                                   </div>
+                                   <div class="card-body" style="max-height: 200px; overflow-y: auto;">
+                                       <div id="eliminatedFeaturesList"></div>
+                                   </div>
+                               </div>
+                           </div>
+                       </div>
+                       
+                       <!-- Grafik dan Visualisasi Feature Selection -->
+                       <div class="row mt-3">
+                           <div class="col-md-6">
+                               <div class="card border-primary">
+                                   <div class="card-header bg-primary text-white">
+                                       <h6><i class="fas fa-chart-line"></i> Timeline Seleksi Fitur</h6>
+                                   </div>
+                                   <div class="card-body">
+                                       <canvas id="featureSelectionTimelineChart" height="250"></canvas>
+                                   </div>
+                               </div>
+                           </div>
+                           <div class="col-md-6">
+                               <div class="card border-success">
+                                   <div class="card-header bg-success text-white">
+                                       <h6><i class="fas fa-chart-area"></i> Perbandingan Performa Model</h6>
+                                   </div>
+                                   <div class="card-body">
+                                       <canvas id="modelPerformanceComparisonChart" height="250"></canvas>
+                                   </div>
+                               </div>
+                           </div>
+                       </div>
+
+                       <!-- Tabel Detailed Feature Analysis -->
+                       <div class="row mt-3">
+                           <div class="col-md-12">
+                               <div class="card border-dark">
+                                   <div class="card-header bg-dark text-white">
+                                       <h6><i class="fas fa-table"></i> Analisis Detail Feature Selection</h6>
+                                   </div>
+                                   <div class="card-body">
+                                       <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                                           <table class="table table-sm table-striped table-bordered">
+                                               <thead class="thead-dark sticky-top">
+                                                   <tr>
+                                                       <th>Fitur</th>
+                                                       <th>Status</th>
+                                                       <th>Importance Score</th>
+                                                       <th>Kontribusi Akurasi</th>
+                                                       <th>Step Eliminasi</th>
+                                                       <th>Keterangan</th>
+                                                   </tr>
+                                               </thead>
+                                               <tbody id="featureAnalysisTable">
+                                                   <!-- Data akan diisi oleh JavaScript -->
+                                               </tbody>
+                                           </table>
+                                       </div>
+                                   </div>
+                               </div>
+                           </div>
+                       </div>
+
+                       <!-- Grafik Feature Impact -->
+                       <div class="row mt-3">
+                           <div class="col-md-8">
+                               <div class="card border-warning">
+                                   <div class="card-header bg-warning text-dark">
+                                       <h6><i class="fas fa-chart-bar"></i> Impact Fitur Terhadap Prediksi</h6>
+                                   </div>
+                                   <div class="card-body">
+                                       <canvas id="featureImpactChart" height="200"></canvas>
+                                   </div>
+                               </div>
+                           </div>
+                           <div class="col-md-4">
+                               <div class="card border-info">
+                                   <div class="card-header bg-info text-white">
+                                       <h6><i class="fas fa-percentage"></i> Ringkasan Optimasi</h6>
+                                   </div>
+                                   <div class="card-body">
+                                       <div id="optimizationSummary">
+                                           <!-- Data akan diisi oleh JavaScript -->
+                                       </div>
+                                   </div>
+                               </div>
+                           </div>
+                       </div>
+                       
+                       <div class="row mt-3">
+                           <div class="col-md-12">
+                               <div class="card border-info">
+                                   <div class="card-header bg-info text-white">
+                                       <h6><i class="fas fa-cogs"></i> Proses Backward Elimination Step-by-Step</h6>
+                                   </div>
+                                   <div class="card-body" style="max-height: 750px; overflow-y: auto;">
+                                       <div id="eliminationSteps"></div>
+                                   </div>
+                               </div>
+                           </div>
+                       </div>
+                   </div>
+               </div>
+
             </main>
         </div>
     </div>    <!-- Bootstrap JS dan dependencies -->
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"
             crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/js/bootstrap.bundle.min.js" 
-            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <script src="{{ url_for('static', filename='js/simulation.js') }}"></script>
+            crossorigin="anonymous" referrerpolicy="no-referrer"></script>    <script src="{{ url_for('static', filename='js/simulation.js') }}"></script>
     <script src="{{ url_for('static', filename='js/batch-simulation.js') }}"></script>
+</script>
 </body>
 </html>

@@ -228,3 +228,96 @@ fetchEvaluationData()
 fetchCombinedData()
 
 fetchTrainData()
+
+// Fetch data untuk analisa berdasarkan usia balita
+async function fetchAgeAnalysisData() {
+    try {
+        const response = await fetch('/analysis_by_age');
+        const data = await response.json();
+        
+        // Data untuk chart
+        const ageLabels = data.chart_data.map(item => `${item.usia_group} bulan`);
+        const normalData = data.chart_data.map(item => item.normal_count);
+        const stuntingData = data.chart_data.map(item => item.stunting_count);
+        
+        // Membuat chart
+        const ctx = document.getElementById('ageChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ageLabels,
+                datasets: [{
+                    label: 'Normal',
+                    data: normalData,
+                    backgroundColor: 'rgba(54, 162, 235, 0.8)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }, {
+                    label: 'Stunting',
+                    data: stuntingData,
+                    backgroundColor: 'rgba(255, 99, 132, 0.8)',
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Jumlah Balita'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Kelompok Usia'
+                        }
+                    }
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Distribusi Status Stunting Berdasarkan Usia Balita'
+                    },
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    }
+                }
+            }
+        });
+        
+        // Isi tabel
+        let tableHtml = '';
+        data.table_data.forEach(item => {
+            const stuntingPercentage = item.total > 0 ? ((item.stunting_count / item.total) * 100).toFixed(1) : '0.0';
+            tableHtml += `
+                <tr>
+                    <td>${item.usia_group}</td>
+                    <td class="text-center">${item.normal_count}</td>
+                    <td class="text-center">${item.stunting_count}</td>
+                    <td class="text-center"><strong>${item.total}</strong></td>
+                    <td class="text-center">
+                        <span class="badge ${parseFloat(stuntingPercentage) > 50 ? 'badge-danger' : 'badge-warning'}">
+                            ${stuntingPercentage}%
+                        </span>
+                    </td>
+                </tr>
+            `;
+        });
+        document.getElementById('ageAnalysisTableBody').innerHTML = tableHtml;
+        
+    } catch (error) {
+        console.error('Error fetching age analysis data:', error);
+        // Show error message in table
+        document.getElementById('ageAnalysisTableBody').innerHTML =
+            '<tr><td colspan="5" class="text-center text-muted">Error loading data</td></tr>';
+    }
+}
+
+// Load age analysis data
+fetchAgeAnalysisData()
