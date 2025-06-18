@@ -5,16 +5,12 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Halaman Admin</title>
         <!-- Bootstrap 4.6 CSS -->
-        
-        <!-- Font Awesome untuk Ikon -->
-        <link
-            rel="stylesheet"
-            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
-            integrity="sha512-dN6CqgBt5cV/a6F2zAQXyyGAKb6G2Y7sjOzBgxxec+oO3tK9GwHlqzG4oYjpOngboRdhN2y3svL4C9o2QK/Zog=="
-            crossorigin="anonymous" referrerpolicy="no-referrer" />
-            <!-- CSS Kustom -->
-            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/css/bootstrap.min.css" integrity="sha512-rt/SrQ4UNIaGfDyEXZtNcyWvQeOq0QLygHluFQcSjaGB04IxWhal71tKuzP6K8eYXYB6vJV4pHkXcmFGGQ1/0w==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-            <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+          <!-- Font Awesome untuk Ikon -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" 
+              crossorigin="anonymous" referrerpolicy="no-referrer" />
+        <!-- Bootstrap CSS -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/css/bootstrap.min.css" 
+              crossorigin="anonymous" referrerpolicy="no-referrer" />            <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
             <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         </head>
         <body>
@@ -24,12 +20,16 @@
                 <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav"
                 aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="collapse navbar-collapse" id="navbarNav">                    <ul class="navbar-nav ml-auto">                        <li class="nav-item active">
+                </button>                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav ml-auto">
+                        <li class="nav-item active">
                             <a class="nav-link" href="/"><i class="fas fa-home"></i> Beranda</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="/simulation"><i class="fas fa-calculator"></i> Simulasi Naive Bayes</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/database"><i class="fas fa-database"></i> Database Management</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="/open_train_data"><i class="fas fa-user"></i> Buka Data Latih</a>
@@ -236,13 +236,11 @@
             </main>
         </div>
     </div>
-    
-    <!-- Bootstrap JS dan dependencies -->
-    <script
-    src="https://code.jquery.com/jquery-3.5.1.js"
-    integrity="sha384-DfXdEHgT3h6OYIjQW7zUA5rx2nyH7aUfCTF1n0hsVt4sI8uJXUkq0F+4WgNH5/2X"
-    crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/js/bootstrap.bundle.min.js" integrity="sha512-igl8WEUuas9k5dtnhKqyyld6TzzRjvMqLC79jkgT3z02FvJyHAuUtyemm/P/jYSne1xwFI06ezQxEwweaiV7VA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+      <!-- Bootstrap JS dan dependencies -->    <script src="https://code.jquery.com/jquery-3.6.0.min.js" 
+            crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/js/bootstrap.bundle.min.js" 
+            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="{{ url_for('static', filename='js/data-validator.js') }}"></script>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html>

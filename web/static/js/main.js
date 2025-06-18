@@ -2,11 +2,17 @@ async function fetchCombinedData() {
     try {
         // Mengambil data dari API train_data
         const trainResponse = await fetch('/test_data');
-        const trainData = await trainResponse.json();
-
+        const trainResult = await trainResponse.json();
+        
+        // Handle new API response format
+        const trainData = trainResult.data || trainResult;
+        
         // Mengambil data dari API test
         const testResponse = await fetch('/test');
-        const testData = await testResponse.json();
+        const testResult = await testResponse.json();
+        
+        // Handle new API response format
+        const testData = testResult.predictions || testResult;
 
         // Menggabungkan data
         let combinedData = trainData.map(trainItem => {
@@ -17,18 +23,19 @@ async function fetchCombinedData() {
             };
         });
 
-        let tbody = '';
-
-        // Mengisi tbody dengan data yang sudah digabungkan
-        combinedData.forEach(item => {
+        let tbody = '';        // Bersihkan data sebelum dirender
+        const sanitizedData = window.DataValidator.sanitizeTableData(combinedData);
+        
+        // Mengisi tbody dengan data yang sudah digabungkan dan dibersihkan
+        sanitizedData.forEach(item => {
             tbody += `<tr>
-                <td class="text-left">${item.nama_keluarga}</td>
+                <td class="text-left">${item.nama_keluarga || '-'}</td>
                 <td class="text-left">${item.jenis_kelamin}</td>
                 <td class="text-left">${item.usia}</td>
                 <td class="text-left">${item.tinggi}</td>
                 <td class="text-left">${item.berat}</td>
                 <td class="text-left">${item.pendapatan}</td>
-                <td class="text-left">${item.air_bersih}</td>
+                <td class="text-left">${item.air_bersih || '-'}</td>
                 <td class="text-left">${item.kondisi_sanitasi}</td>
                 <td class="text-left">${item.susu_formula}</td>
                 <td class="text-left">${item.status_stunting_predicted}</td>
@@ -167,8 +174,7 @@ async function fetchCombinedData() {
                     },
                     title: {
                         display: true,
-                        text: 'Frekuensi Prediksi Stunting Berdasarkan Rentang Pendapatan'
-                    }
+                        text: 'Frekuensi Prediksi Stunting Berdasarkan Rentang Pendapatan'                    }
                 }
             }
         });
@@ -177,18 +183,20 @@ async function fetchCombinedData() {
     }
 }
 
-
 async function fetchTrainData() {
     try {
         const response = await fetch('/train_data');
-        const data = await response.json();
+        const result = await response.json();
+        
+        // Handle new API response format
+        const data = result.data || result;
 
         let tbody = '';
 
         // Mengisi tbody dengan data
         data.forEach(item => {
             tbody += `<tr>
-                <td class="text-left">${item.Nama}</td>
+                <td class="text-left">${item.Nama || item.nama}</td>
                 <td class="text-left">${item.jenis_kelamin}</td>
                 <td class="text-left">${item.usia}</td>
                 <td class="text-left">${item.tinggi}</td>
@@ -201,7 +209,7 @@ async function fetchTrainData() {
             </tr>`;
         });
 
-        // Menampilkan tbody di elemen dengan id 'data-test'
+        // Menampilkan tbody di elemen dengan id 'data-training'
         document.getElementById('data-training').innerHTML = tbody;
     } catch (error) {
         console.error('Error fetching train data:', error);
@@ -209,8 +217,13 @@ async function fetchTrainData() {
 }
 async function fetchEvaluationData() {
     try {
-        const response = await fetch('http://127.0.0.1:5000/evaluate'); // Ganti dengan URL API yang sesuai
+        const response = await fetch('/evaluate'); // Gunakan relative URL
         const data = await response.json();
+        
+        if (data.error) {
+            console.error('Error from server:', data.error);
+            return;
+        }
         
         document.getElementById('accuracy').textContent = data.accuracy.toFixed(3);
         document.getElementById('f1-score').textContent = data.f1_score.toFixed(3);
@@ -235,10 +248,15 @@ async function fetchAgeAnalysisData() {
         const response = await fetch('/analysis_by_age');
         const data = await response.json();
         
-        // Data untuk chart
-        const ageLabels = data.chart_data.map(item => `${item.usia_group} bulan`);
-        const normalData = data.chart_data.map(item => item.normal_count);
-        const stuntingData = data.chart_data.map(item => item.stunting_count);
+        if (!data.chart_data) {
+            console.error("Invalid response format from analysis_by_age:", data);
+            return;
+        }
+        
+        // Data untuk chart (format baru)
+        const ageLabels = data.chart_data.usia_group.map(item => `${item} bulan`);
+        const normalData = data.chart_data["Tidak Stunting"];
+        const stuntingData = data.chart_data["Stunting"];
         
         // Membuat chart
         const ctx = document.getElementById('ageChart').getContext('2d');
@@ -290,17 +308,20 @@ async function fetchAgeAnalysisData() {
                 }
             }
         });
-        
-        // Isi tabel
+          // Isi tabel (format baru)
         let tableHtml = '';
         data.table_data.forEach(item => {
-            const stuntingPercentage = item.total > 0 ? ((item.stunting_count / item.total) * 100).toFixed(1) : '0.0';
+            const normalCount = item["Tidak Stunting"] || 0;
+            const stuntingCount = item["Stunting"] || 0;
+            const total = normalCount + stuntingCount;
+            const stuntingPercentage = total > 0 ? ((stuntingCount / total) * 100).toFixed(1) : '0.0';
+            
             tableHtml += `
                 <tr>
                     <td>${item.usia_group}</td>
-                    <td class="text-center">${item.normal_count}</td>
-                    <td class="text-center">${item.stunting_count}</td>
-                    <td class="text-center"><strong>${item.total}</strong></td>
+                    <td class="text-center">${normalCount}</td>
+                    <td class="text-center">${stuntingCount}</td>
+                    <td class="text-center"><strong>${total}</strong></td>
                     <td class="text-center">
                         <span class="badge ${parseFloat(stuntingPercentage) > 50 ? 'badge-danger' : 'badge-warning'}">
                             ${stuntingPercentage}%
@@ -319,5 +340,17 @@ async function fetchAgeAnalysisData() {
     }
 }
 
-// Load age analysis data
-fetchAgeAnalysisData()
+// Load all data
+document.addEventListener('DOMContentLoaded', function() {
+    // Use try-catch untuk setiap fungsi terpisah
+    try { fetchEvaluationData(); } catch (e) { console.error(e); }
+    try { fetchCombinedData(); } catch (e) { console.error(e); }
+    try { fetchTrainData(); } catch (e) { console.error(e); }
+    try { fetchAgeAnalysisData(); } catch (e) { console.error(e); }
+});
+
+// Menghapus panggilan fungsi yang terpisah
+// fetchEvaluationData()
+// fetchCombinedData()
+// fetchTrainData()
+// fetchAgeAnalysisData()

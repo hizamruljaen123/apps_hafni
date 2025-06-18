@@ -14,6 +14,9 @@ import os
 import numpy as np
 import math
 import json
+import mysql.connector
+from mysql.connector import Error
+from config import DATABASE_CONFIG, APP_CONFIG, MODEL_CONFIG, FILE_PATHS, FEATURE_MAPPING, FEATURE_NAMES, SQL_QUERIES
 
 # Custom JSON encoder for NumPy data types
 class NumpyEncoder(json.JSONEncoder):
@@ -41,33 +44,91 @@ class NumpyEncoder(json.JSONEncoder):
             return bool(obj)
         return super(NumpyEncoder, self).default(obj)
 
+# Database configuration for MySQL
+DB_CONFIG = DATABASE_CONFIG
+
+def create_mysql_connection():
+    """Create MySQL database connection"""
+    try:
+        connection = mysql.connector.connect(**DB_CONFIG)
+        if connection.is_connected():
+            return connection
+    except Error as e:
+        print(f"Error connecting to MySQL: {e}")
+        return None
+
+def load_data_from_mysql(table_name):
+    """Load data from MySQL table"""
+    try:
+        connection = create_mysql_connection()
+        if not connection:
+            raise Exception("Cannot connect to MySQL database")
+        
+        # Query to load data
+        if table_name == 'data_latih':
+            query = SQL_QUERIES['select_train_data']
+            # Rename column for consistency
+            df = pd.read_sql(query, connection)
+            df = df.rename(columns={'nama': 'Nama'})
+        elif table_name == 'data_uji_y':
+            query = SQL_QUERIES['select_test_data']
+            df = pd.read_sql(query, connection)
+        else:
+            raise Exception(f"Unknown table: {table_name}")
+        
+        connection.close()
+        return df
+        
+    except Exception as e:
+        print(f"Error loading data from MySQL table {table_name}: {e}")
+        # Fallback to Excel files if MySQL fails
+        if table_name == 'data_latih':
+            return pd.read_excel(FILE_PATHS['train_data'])
+        else:
+            return pd.read_excel(FILE_PATHS['test_data'])
+
+# File paths (kept as fallback)
+train_file_path = FILE_PATHS['train_data']
+test_file_path = FILE_PATHS['test_data']
+
 app = Flask(__name__)
 app.json_encoder = NumpyEncoder
-app.json_encoder = NumpyEncoder
-
-# File paths
-train_file_path = '../data_latih.xlsx'
-test_file_path = '../data_uji_y.xlsx'
 
 # Cek model dan melatih model jika tidak ada
 def check_and_train_model():
-    if not os.path.exists('naive_bayes_stunting_model.pkl'):
+    if not os.path.exists(MODEL_CONFIG['model_file']):
         try:
             print("Model tidak ditemukan, melatih model baru...")
-            # Load the training data
-            data = pd.read_excel(train_file_path)
+            # Load the training data from MySQL
+            data = load_data_from_mysql('data_latih')
             
-            # Preprocess the data
+            # Preprocess the data with NaN handling
             X = preprocess_data(data)
-            y = data['status_stunting'].map({'Tidak': 0, 'Ya': 1})
+            y = data['status_stunting'].map(FEATURE_MAPPING['status_stunting'])
+            
+            # Handle missing values
+            if X.isnull().any().any() or y.isnull().any():
+                print("Warning: Missing values detected, cleaning data...")
+                if X.isnull().any().any():
+                    imputer = SimpleImputer(strategy='mean')
+                    X = pd.DataFrame(
+                        imputer.fit_transform(X), 
+                        columns=X.columns, 
+                        index=X.index
+                    )
+                
+                if y.isnull().any():
+                    valid_indices = ~y.isnull()
+                    X = X[valid_indices]
+                    y = y[valid_indices]
             
             # Train Naive Bayes model
             model = GaussianNB()
             model.fit(X, y)
             
             # Save the model
-            joblib.dump(model, 'naive_bayes_stunting_model.pkl')
-            print("Model berhasil dilatih dan disimpan!")
+            joblib.dump(model, MODEL_CONFIG['model_file'])
+            print(f"Model berhasil dilatih dan disimpan! Features: {FEATURE_NAMES}")
         except Exception as e:
             print(f"Error melatih model: {str(e)}")
     else:
@@ -75,27 +136,100 @@ def check_and_train_model():
 
 # Preprocessing functions
 def map_pendapatan(pendapatan):
-    if pendapatan < 1000000:
-        return 1
-    elif 1000000 <= pendapatan < 2000000:
-        return 2
-    elif 2000000 <= pendapatan < 3000000:
-        return 3
-    elif 3000000 <= pendapatan < 4000000:
-        return 4
-    else:
-        return 5
+    """Map pendapatan to numeric categories using config with NaN handling"""
+    # Handle NaN values
+    if pd.isna(pendapatan):
+        return 3  # Default to middle category for missing values
+    
+    # Ensure pendapatan is numeric
+    try:
+        pendapatan = float(pendapatan)
+    except (ValueError, TypeError):
+        return 3  # Default to middle category for invalid values
+    
+    for min_val, max_val, category in FEATURE_MAPPING['pendapatan']['ranges']:
+        if min_val <= pendapatan < max_val:
+            return category
+    return 5  # Default highest category
+
+def safe_map_column(series, mapping, default_value=0):
+    """Safely map column values with fallback for unknown values"""
+    # Fill NaN values first
+    series_filled = series.fillna('Unknown')
+    
+    # Map known values and set unknown values to default
+    mapped_series = series_filled.map(mapping)
+    
+    # Handle any remaining NaN values (from unmapped categories)
+    if mapped_series.isnull().any():
+        print(f"Warning: Unknown categories found in {series.name}: {series_filled[mapped_series.isnull()].unique()}")
+        mapped_series.fillna(default_value, inplace=True)
+    
+    return mapped_series
 
 def preprocess_data(data):
-    # Convert categorical variables to numerical
-    data['pendapatan'] = data['pendapatan'].apply(map_pendapatan)
-    data['jenis_kelamin'] = data['jenis_kelamin'].map({'Laki-laki': 1, 'Perempuan': 0})
-    data['air_bersih'] = data['air_bersih'].map({'Buruk': 1, 'Cukup': 2, 'Baik': 3, 'Sangat Baik': 4})
-    data['kondisi_sanitasi'] = data['kondisi_sanitasi'].map({'Buruk': 1, 'Cukup': 2, 'Baik': 3, 'Sangat Baik': 4})
-    data['susu_formula'] = data['susu_formula'].map({'Tidak': 0, 'Ya': 1})
+    """Preprocess data using configuration mappings with comprehensive NaN handling"""
+    # Make a copy to avoid modifying original data
+    data_copy = data.copy()
     
-    selected_columns = ['pendapatan', 'tinggi', 'berat', 'jenis_kelamin', 'air_bersih', 'kondisi_sanitasi', 'susu_formula']
-    X_data = data[selected_columns]
+    print(f"Original data shape: {data_copy.shape}")
+    print(f"Original missing values:\n{data_copy[FEATURE_NAMES + ['status_stunting']].isnull().sum()}")
+    
+    # Handle missing values in numerical columns first
+    numerical_cols = ['pendapatan', 'tinggi', 'berat', 'usia']
+    for col in numerical_cols:
+        if col in data_copy.columns:
+            if data_copy[col].isnull().any():
+                median_val = data_copy[col].median()
+                data_copy[col].fillna(median_val, inplace=True)
+                print(f"Filled {col} NaN values with median: {median_val}")
+    
+    # Convert pendapatan to numeric category with NaN handling
+    data_copy['pendapatan'] = data_copy['pendapatan'].apply(map_pendapatan)
+    
+    # Map categorical variables safely
+    data_copy['jenis_kelamin'] = safe_map_column(
+        data_copy['jenis_kelamin'], 
+        FEATURE_MAPPING['jenis_kelamin'], 
+        default_value=0  # Default to 0 (Perempuan)
+    )
+    
+    data_copy['air_bersih'] = safe_map_column(
+        data_copy['air_bersih'], 
+        FEATURE_MAPPING['air_bersih'], 
+        default_value=2  # Default to 'Cukup'
+    )
+    
+    data_copy['kondisi_sanitasi'] = safe_map_column(
+        data_copy['kondisi_sanitasi'], 
+        FEATURE_MAPPING['kondisi_sanitasi'], 
+        default_value=2  # Default to 'Cukup'
+    )
+    
+    data_copy['susu_formula'] = safe_map_column(
+        data_copy['susu_formula'], 
+        FEATURE_MAPPING['susu_formula'], 
+        default_value=0  # Default to 'Tidak'
+    )
+    
+    # Select features defined in config
+    X_data = data_copy[FEATURE_NAMES]
+    
+    print(f"After categorical mapping:\n{X_data.isnull().sum()}")
+    
+    # Final check for any remaining NaN values
+    if X_data.isnull().any().any():
+        print("Warning: NaN values still present after categorical mapping, using imputer...")
+        imputer = SimpleImputer(strategy='mean')
+        X_data_imputed = pd.DataFrame(
+            imputer.fit_transform(X_data), 
+            columns=X_data.columns, 
+            index=X_data.index
+        )
+        print(f"Final data shape after imputation: {X_data_imputed.shape}")
+        return X_data_imputed
+    
+    print(f"Final data shape: {X_data.shape}")
     return X_data
 
 # Feature Selection with Backward Elimination
@@ -386,107 +520,215 @@ def perform_backward_elimination_safe(X, y, feature_names):
 def index():
     return render_template('index.html')
 
-# Train route using GET method and preloaded file
+# Train route using GET method and MySQL data
 @app.route('/train', methods=['GET'])
 def train():
-    # Load the training data from the preloaded file
-    data = pd.read_excel(train_file_path)
-    
-    # Preprocess the data
-    X, y = preprocess_data(data), data['status_stunting'].map({'Tidak': 0, 'Ya': 1})
-    
-    # Train Naive Bayes model
-    model = GaussianNB()
-    model.fit(X, y)
-    
-    # Save the model
-    joblib.dump(model, 'naive_bayes_stunting_model.pkl')
-    
-    return jsonify({'message': 'Model trained and saved successfully using preloaded data'})
+    try:
+        # Load the training data from MySQL
+        data = load_data_from_mysql('data_latih')
+        
+        print(f"Training data loaded: {data.shape}")
+        print(f"Missing values check:")
+        print(data.isnull().sum())
+        
+        # Preprocess the data with NaN handling
+        X = preprocess_data(data)
+        y = data['status_stunting'].map(FEATURE_MAPPING['status_stunting'])
+        
+        # Final check for NaN values
+        if X.isnull().any().any():
+            print("Warning: NaN in X, applying imputation...")
+            imputer = SimpleImputer(strategy='mean')
+            X = pd.DataFrame(
+                imputer.fit_transform(X), 
+                columns=X.columns, 
+                index=X.index
+            )
+        
+        if y.isnull().any():
+            print("Warning: NaN in y, removing...")
+            valid_indices = ~y.isnull()
+            X = X[valid_indices]
+            y = y[valid_indices]
+        
+        print(f"Final training data: X={X.shape}, y={y.shape}")
+        
+        # Train Naive Bayes model
+        model = GaussianNB()
+        model.fit(X, y)
+        
+        # Save the model
+        joblib.dump(model, MODEL_CONFIG['model_file'])
+        
+        return jsonify({
+            'message': 'Model trained and saved successfully using MySQL data', 
+            'data_count': len(data),
+            'processed_count': len(X),
+            'features_used': FEATURE_NAMES
+        })
+    except Exception as e:
+        print(f"Training error: {str(e)}")
+        return jsonify({'error': f'Training failed: {str(e)}'}), 500
 
-# Test route using GET method and preloaded file
+# Test route using GET method and MySQL data
 @app.route('/test', methods=['GET'])
 def test():
-    # Load the test data from the preloaded file
-    data = pd.read_excel(test_file_path)
-    
-    # Load the trained model
-    model = joblib.load('naive_bayes_stunting_model.pkl')
-    
-    # Preprocess the data
-    X_test = preprocess_data(data)
-    
-    # Make predictions
-    predictions = model.predict(X_test)
-    
-    # Convert predictions to readable format
-    data['status_stunting_predicted'] = predictions
-    data['status_stunting_predicted'] = data['status_stunting_predicted'].map({0: 'Tidak Stunting', 1: 'Stunting'})
-    
-    # Convert the results to JSON format
-    result_json = data[['nama_keluarga', 'status_stunting_predicted']].to_dict(orient='records')
-    
-    return jsonify(result_json)
+    try:
+        # Load the test data from MySQL
+        data = load_data_from_mysql('data_uji_y')
+        
+        print(f"Test data loaded: {data.shape}")
+        
+        # Load the trained model
+        model = joblib.load(MODEL_CONFIG['model_file'])
+        
+        # Preprocess the data with NaN handling
+        X_test = preprocess_data(data)
+        
+        # Final check for NaN values
+        if X_test.isnull().any().any():
+            print("Warning: NaN in test data, applying imputation...")
+            imputer = SimpleImputer(strategy='mean')
+            X_test = pd.DataFrame(
+                imputer.fit_transform(X_test), 
+                columns=X_test.columns, 
+                index=X_test.index
+            )
+        
+        print(f"Test data after preprocessing: {X_test.shape}")
+        
+        # Make predictions
+        predictions = model.predict(X_test)
+        
+        # Convert predictions to readable format
+        data_copy = data.copy()
+        data_copy['status_stunting_predicted'] = predictions
+        data_copy['status_stunting_predicted'] = data_copy['status_stunting_predicted'].map({0: 'Tidak Stunting', 1: 'Stunting'})
+        
+        # Convert the results to JSON format
+        result_json = data_copy[['nama_keluarga', 'status_stunting_predicted']].to_dict(orient='records')
+        
+        return jsonify({
+            'predictions': result_json,
+            'total_predictions': len(result_json),
+            'data_source': 'MySQL Database'
+        })
+    except Exception as e:
+        print(f"Testing error: {str(e)}")
+        return jsonify({'error': f'Testing failed: {str(e)}'}), 500
 
-# Evaluate route using POST method (stays unchanged)
+# Evaluate route using MySQL data
 @app.route('/evaluate', methods=['GET'])
 def evaluate():
-    # Load the evaluation data from the preloaded file `data_x.xlsx`
-    data = pd.read_excel(train_file_path)  # Assume `train_file_path` is set to '/mnt/data/data_x.xlsx'
-    
-    # Preprocess the data
-    X, y = preprocess_data(data), data['status_stunting'].map({'Tidak': 0, 'Ya': 1})
-    
-    # Split into train and test sets
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    
-    # Load the trained model
-    model = joblib.load('naive_bayes_stunting_model.pkl')
-    
-    # Make predictions and evaluate
-    y_pred = model.predict(X_test)
-    accuracy = accuracy_score(y_test, y_pred)
-    precision = precision_score(y_test, y_pred)
-    recall = recall_score(y_test, y_pred)
-    f1 = f1_score(y_test, y_pred)
-    
-    # Frequency of predictions (Stunting vs. Not Stunting)
-    stunting_counts = pd.Series(y_pred).value_counts(normalize=True) * 100
-    stunting_counts = stunting_counts.rename(index={0: "Tidak Stunting", 1: "Stunting"})
-    
-    # Convert the evaluation metrics to JSON format
-    result_json = {
-        'accuracy': accuracy,
-        'precision': precision,
-        'recall': recall,
-        'f1_score': f1,
-        'prediction_distribution': stunting_counts.to_dict()
-    }
-    
-    return jsonify(result_json)
-# Route to return training data as JSON
+    try:
+        # Load the evaluation data from MySQL
+        data = load_data_from_mysql('data_latih')
+        
+        # Check for missing values in the dataset
+        print(f"Data shape: {data.shape}")
+        print(f"Missing values per column:")
+        print(data.isnull().sum())
+        
+        # Preprocess the data with NaN handling
+        X = preprocess_data(data)
+        y = data['status_stunting'].map(FEATURE_MAPPING['status_stunting'])
+        
+        # Additional check for NaN values in processed data
+        if X.isnull().any().any():
+            print("Warning: Still have NaN values after preprocessing, applying final imputation...")
+            imputer = SimpleImputer(strategy='mean')
+            X = pd.DataFrame(
+                imputer.fit_transform(X), 
+                columns=X.columns, 
+                index=X.index
+            )
+        
+        # Check for NaN in target variable
+        if y.isnull().any():
+            print("Warning: NaN values in target variable, removing...")
+            valid_indices = ~y.isnull()
+            X = X[valid_indices]
+            y = y[valid_indices]
+        
+        print(f"Final data shape after cleaning: X={X.shape}, y={y.shape}")
+        print(f"X contains NaN: {X.isnull().any().any()}")
+        print(f"y contains NaN: {y.isnull().any()}")
+        
+        # Split into train and test sets
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=MODEL_CONFIG['test_size'], 
+            random_state=MODEL_CONFIG['random_state'], 
+            stratify=y
+        )
+        
+        # Load the trained model
+        model = joblib.load(MODEL_CONFIG['model_file'])
+        
+        # Make predictions and evaluate
+        y_pred = model.predict(X_test)
+        accuracy = accuracy_score(y_test, y_pred)
+        precision = precision_score(y_test, y_pred, zero_division=0)
+        recall = recall_score(y_test, y_pred, zero_division=0)
+        f1 = f1_score(y_test, y_pred, zero_division=0)
+        
+        # Frequency of predictions (Stunting vs. Not Stunting)
+        stunting_counts = pd.Series(y_pred).value_counts(normalize=True) * 100
+        stunting_counts = stunting_counts.rename(index={0: "Tidak Stunting", 1: "Stunting"})
+        
+        # Convert the evaluation metrics to JSON format
+        result_json = {
+            'accuracy': float(accuracy),
+            'precision': float(precision),
+            'recall': float(recall),
+            'f1_score': float(f1),
+            'prediction_distribution': stunting_counts.to_dict(),
+            'data_source': 'MySQL Database',
+            'total_records': len(data),
+            'processed_records': len(X),
+            'missing_values_handled': len(data) - len(X)
+        }
+        
+        return jsonify(result_json)
+    except Exception as e:
+        print(f"Evaluation error: {str(e)}")
+        return jsonify({'error': f'Evaluation failed: {str(e)}'}), 500
+# Route to return training data from MySQL as JSON
 @app.route('/train_data', methods=['GET'])
 def get_train_data():
-    # Load the training data from `data_x.xlsx`
-    train_data = pd.read_excel(train_file_path)  # Assume `train_file_path` is set to '/mnt/data/data_x.xlsx'
-    
-    # Convert the DataFrame to a JSON format
-    train_data_json = train_data.to_dict(orient='records')
-    
-    # Return the training data as JSON
-    return jsonify(train_data_json)
+    try:
+        # Load the training data from MySQL
+        train_data = load_data_from_mysql('data_latih')
+        
+        # Convert the DataFrame to a JSON format
+        train_data_json = train_data.to_dict(orient='records')
+        
+        # Return the training data as JSON
+        return jsonify({
+            'data': train_data_json,
+            'count': len(train_data_json),
+            'source': 'MySQL Database'
+        })
+    except Exception as e:
+        return jsonify({'error': f'Failed to load training data: {str(e)}'}), 500
 
-# Route to return test data as JSON
+# Route to return test data from MySQL as JSON
 @app.route('/test_data', methods=['GET'])
 def get_test_data():
-    # Load the test data from `data_uji.xlsx`
-    test_data = pd.read_excel(test_file_path)  # Assume `test_file_path` is set to '/mnt/data/data_uji.xlsx'
-    
-    # Convert the DataFrame to a JSON format
-    test_data_json = test_data.to_dict(orient='records')
-    
-    # Return the test data as JSON
-    return jsonify(test_data_json)
+    try:
+        # Load the test data from MySQL
+        test_data = load_data_from_mysql('data_uji_y')
+        
+        # Convert the DataFrame to a JSON format
+        test_data_json = test_data.to_dict(orient='records')
+        
+        # Return the test data as JSON
+        return jsonify({
+            'data': test_data_json,
+            'count': len(test_data_json),
+            'source': 'MySQL Database'
+        })
+    except Exception as e:
+        return jsonify({'error': f'Failed to load test data: {str(e)}'}), 500
 
 
 @app.route('/open_train_data', methods=['GET'])
@@ -518,38 +760,46 @@ def open_test_data():
 def simulation():
     return render_template('simulation.html')
 
-# API untuk mendapatkan daftar semua data training
+# API untuk mendapatkan daftar semua data training dari MySQL
 @app.route('/api/get_train_data_list', methods=['GET'])
 def get_train_data_list():
     try:
-        train_data = pd.read_excel(train_file_path)
+        train_data = load_data_from_mysql('data_latih')
         data_list = []
         for idx, row in train_data.iterrows():
             data_list.append({
                 'id': str(idx),
-                'nama': row['nama_keluarga'],
+                'nama': row['Nama'],  # Note: column name is 'Nama' in data_latih
                 'status': row['status_stunting']
             })
-        return jsonify(data_list)
+        return jsonify({
+            'data': data_list,
+            'count': len(data_list),
+            'source': 'MySQL Database'
+        })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# API untuk mendapatkan daftar semua data testing
+# API untuk mendapatkan daftar semua data testing dari MySQL
 @app.route('/api/get_test_data_list', methods=['GET'])
 def get_test_data_list():
     try:
-        test_data = pd.read_excel(test_file_path)
+        test_data = load_data_from_mysql('data_uji_y')
         data_list = []
         for idx, row in test_data.iterrows():
             data_list.append({
                 'id': str(idx),
                 'nama': row['nama_keluarga']
             })
-        return jsonify(data_list)
+        return jsonify({
+            'data': data_list,
+            'count': len(data_list),
+            'source': 'MySQL Database'
+        })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# API untuk mendapatkan detail data berdasarkan ID
+# API untuk mendapatkan detail data berdasarkan ID dari MySQL
 @app.route('/api/get_data_detail', methods=['GET'])
 def get_data_detail():
     try:
@@ -557,29 +807,32 @@ def get_data_detail():
         data_id = int(request.args.get('id', 0))
         
         if data_source == 'training':
-            data = pd.read_excel(train_file_path)
+            data = load_data_from_mysql('data_latih')
         else:
-            data = pd.read_excel(test_file_path)
+            data = load_data_from_mysql('data_uji_y')
         
         if data_id < 0 or data_id >= len(data):
             return jsonify({'error': 'Data ID tidak valid'}), 400
         
         row = data.iloc[data_id]
         data_detail = row.to_dict()
+        data_detail['source'] = 'MySQL Database'
         
         return jsonify(data_detail)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# API untuk batch processing Naive Bayes
+# API untuk batch processing Naive Bayes dengan MySQL
 @app.route('/api/batch_process', methods=['GET'])
 def batch_process():
     try:
-        # Load data uji
-        data = pd.read_excel(test_file_path)
+        # Load data uji dari MySQL
+        data = load_data_from_mysql('data_uji_y')
         
         # Compute predictions
         result = compute_batch_predictions(data)
+        result['data_source'] = 'MySQL Database'
+        result['total_records'] = len(data)
         
         return jsonify(result)
     except Exception as e:
@@ -591,9 +844,8 @@ def simulate_naive_bayes():
     try:
         # Ambil data input dari request
         input_data = request.get_json()
-        
-        # Load training data dan model
-        train_data = pd.read_excel(train_file_path)
+          # Load training data dan model dari MySQL
+        train_data = load_data_from_mysql('data_latih')
         model = joblib.load('naive_bayes_stunting_model.pkl')
         
         # Preprocess input data
@@ -1158,14 +1410,15 @@ def analysis_by_age():
 
     return jsonify({'chart_data': chart_data, 'table_data': table_data})
 
+# API untuk feature selection menggunakan MySQL data
 @app.route('/api/feature_selection', methods=['GET'])
 def feature_selection_analysis():
     """
-    Perform feature selection using backward elimination
+    Perform feature selection using backward elimination with MySQL data
     """
     try:
-        # Load training data
-        data = pd.read_excel(train_file_path)
+        # Load training data dari MySQL
+        data = load_data_from_mysql('data_latih')
         
         # Preprocess the data
         X = preprocess_data(data)
@@ -1233,7 +1486,9 @@ def feature_selection_analysis():
                 'recall': selected_metrics['recall'] - original_metrics['recall'],
                 'f1_score': selected_metrics['f1_score'] - original_metrics['f1_score']
             },
-            'feature_count_reduction': len(feature_names) - len(results['selected_features'])
+            'feature_count_reduction': len(feature_names) - len(results['selected_features']),
+            'data_source': 'MySQL Database',
+            'total_records': len(data)
         })
         
     except Exception as e:
@@ -1242,7 +1497,594 @@ def feature_selection_analysis():
             'error': str(e)
         }), 500
 
-if __name__ == '__main__':
-    # Periksa dan latih model jika belum ada
-    check_and_train_model()
-    app.run(debug=True)
+# Route untuk status database
+@app.route('/api/database_status', methods=['GET'])
+def database_status():
+    """Check MySQL database connection and table status"""
+    try:
+        connection = create_mysql_connection()
+        if not connection:
+            return jsonify({
+                'status': 'disconnected',
+                'message': 'Cannot connect to MySQL database',
+                'tables': {}
+            })
+        
+        cursor = connection.cursor()
+        
+        # Check if tables exist and get row counts
+        tables_info = {}
+        
+        # Check data_latih table
+        try:
+            cursor.execute("SELECT COUNT(*) FROM data_latih")
+            count_latih = cursor.fetchone()[0]
+            tables_info['data_latih'] = {
+                'exists': True,
+                'count': count_latih
+            }
+        except:
+            tables_info['data_latih'] = {
+                'exists': False,
+                'count': 0
+            }
+        
+        # Check data_uji_y table
+        try:
+            cursor.execute("SELECT COUNT(*) FROM data_uji_y")
+            count_uji = cursor.fetchone()[0]
+            tables_info['data_uji_y'] = {
+                'exists': True,
+                'count': count_uji
+            }
+        except:
+            tables_info['data_uji_y'] = {
+                'exists': False,
+                'count': 0
+            }
+        
+        cursor.close()
+        connection.close()
+        
+        total_records = tables_info['data_latih']['count'] + tables_info['data_uji_y']['count']
+        
+        return jsonify({
+            'status': 'connected',
+            'message': 'Successfully connected to MySQL database',
+            'database': DB_CONFIG['database'],
+            'tables': tables_info,
+            'total_records': total_records
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': f'Database error: {str(e)}',
+            'tables': {}
+        }), 500
+
+# Route untuk import data Excel ke MySQL
+@app.route('/api/import_excel_to_mysql', methods=['POST'])
+def import_excel_to_mysql():
+    """Import Excel data to MySQL database"""
+    try:
+        # Load Excel files
+        df_latih = pd.read_excel('../data_latih.xlsx')
+        df_uji_y = pd.read_excel('../data_uji_y.xlsx')
+        
+        connection = create_mysql_connection()
+        if not connection:
+            return jsonify({'error': 'Cannot connect to MySQL database'}), 500
+        
+        cursor = connection.cursor()
+        
+        # Clear existing data
+        cursor.execute("DELETE FROM data_uji_y")
+        cursor.execute("DELETE FROM data_latih")
+        
+        # Insert data_latih
+        success_latih = 0
+        for _, row in df_latih.iterrows():
+            try:
+                insert_query = """
+                INSERT INTO data_latih (nama, usia, jenis_kelamin, pendapatan, tinggi, berat, air_bersih, kondisi_sanitasi, susu_formula, status_stunting) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """
+                values = (
+                    row['Nama'], int(row['usia']), row['jenis_kelamin'], 
+                    int(row['pendapatan']), int(row['tinggi']), float(row['berat']),
+                    row['air_bersih'], row['kondisi_sanitasi'], 
+                    row['susu_formula'], row['status_stunting']
+                )
+                cursor.execute(insert_query, values)
+                success_latih += 1
+            except Exception as e:
+                print(f"Error inserting data_latih row: {e}")
+        
+        # Insert data_uji_y
+        success_uji = 0
+        for _, row in df_uji_y.iterrows():
+            try:
+                insert_query = """
+                INSERT INTO data_uji_y (nama_keluarga, usia, jenis_kelamin, pendapatan, tinggi, berat, air_bersih, kondisi_sanitasi, susu_formula, status_stunting) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """
+                values = (
+                    row['nama_keluarga'], int(row['usia']), row['jenis_kelamin'], 
+                    int(row['pendapatan']), float(row['tinggi']), float(row['berat']),
+                    row['air_bersih'], row['kondisi_sanitasi'], 
+                    row['susu_formula'], row['status_stunting']
+                )
+                cursor.execute(insert_query, values)
+                success_uji += 1
+            except Exception as e:
+                print(f"Error inserting data_uji_y row: {e}")
+        
+        connection.commit()
+        cursor.close()
+        connection.close()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Data imported successfully',
+            'imported': {
+                'data_latih': success_latih,
+                'data_uji_y': success_uji,
+                'total': success_latih + success_uji
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'Import failed: {str(e)}'}), 500
+
+# CRUD Operations for Data Latih
+@app.route('/api/data_latih', methods=['GET', 'POST', 'PUT', 'DELETE'])
+def data_latih_crud():
+    """CRUD operations untuk data latih"""
+    try:
+        connection = create_mysql_connection()
+        if not connection:
+            return jsonify({'error': 'Cannot connect to database'}), 500
+        
+        cursor = connection.cursor(dictionary=True)
+        
+        if request.method == 'GET':
+            # Read operation
+            page = request.args.get('page', 1, type=int)
+            per_page = request.args.get('per_page', 20, type=int)
+            search = request.args.get('search', '')
+            
+            offset = (page - 1) * per_page
+            
+            # Build query with search
+            where_clause = ""
+            params = []
+            if search:
+                where_clause = """
+                WHERE nama LIKE %s OR jenis_kelamin LIKE %s 
+                OR status_stunting LIKE %s OR kondisi_sanitasi LIKE %s
+                """
+                search_param = f"%{search}%"
+                params = [search_param, search_param, search_param, search_param]
+            
+            # Get total count
+            count_query = f"SELECT COUNT(*) as total FROM data_latih {where_clause}"
+            cursor.execute(count_query, params)
+            total = cursor.fetchone()['total']
+            
+            # Get paginated data
+            data_query = f"""
+            SELECT id, nama, usia, jenis_kelamin, pendapatan, tinggi, berat, 
+                   air_bersih, kondisi_sanitasi, susu_formula, status_stunting, 
+                   created_at, updated_at
+            FROM data_latih {where_clause}
+            ORDER BY id DESC
+            LIMIT %s OFFSET %s
+            """
+            cursor.execute(data_query, params + [per_page, offset])
+            data = cursor.fetchall()
+            
+            return jsonify({
+                'data': data,
+                'pagination': {
+                    'page': page,
+                    'per_page': per_page,
+                    'total': total,
+                    'pages': math.ceil(total / per_page)
+                }
+            })
+        
+        elif request.method == 'POST':
+            # Create operation
+            data = request.get_json()
+            
+            insert_query = """
+            INSERT INTO data_latih (nama, usia, jenis_kelamin, pendapatan, tinggi, berat, 
+                                   air_bersih, kondisi_sanitasi, susu_formula, status_stunting)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """
+            values = (
+                data['nama'], data['usia'], data['jenis_kelamin'], data['pendapatan'],
+                data['tinggi'], data['berat'], data['air_bersih'], data['kondisi_sanitasi'],
+                data['susu_formula'], data['status_stunting']
+            )
+            
+            cursor.execute(insert_query, values)
+            connection.commit()
+            
+            return jsonify({'success': True, 'id': cursor.lastrowid, 'message': 'Data berhasil ditambahkan'})
+        
+        elif request.method == 'PUT':
+            # Update operation
+            data = request.get_json()
+            record_id = data.get('id')
+            
+            update_query = """
+            UPDATE data_latih SET 
+                nama=%s, usia=%s, jenis_kelamin=%s, pendapatan=%s, tinggi=%s, berat=%s,
+                air_bersih=%s, kondisi_sanitasi=%s, susu_formula=%s, status_stunting=%s
+            WHERE id=%s
+            """
+            values = (
+                data['nama'], data['usia'], data['jenis_kelamin'], data['pendapatan'],
+                data['tinggi'], data['berat'], data['air_bersih'], data['kondisi_sanitasi'],
+                data['susu_formula'], data['status_stunting'], record_id
+            )
+            
+            cursor.execute(update_query, values)
+            connection.commit()
+            
+            return jsonify({'success': True, 'message': 'Data berhasil diupdate'})
+        
+        elif request.method == 'DELETE':
+            # Delete operation
+            record_id = request.args.get('id', type=int)
+            
+            delete_query = "DELETE FROM data_latih WHERE id = %s"
+            cursor.execute(delete_query, (record_id,))
+            connection.commit()
+            
+            return jsonify({'success': True, 'message': 'Data berhasil dihapus'})
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if connection and connection.is_connected():
+            cursor.close()
+            connection.close()
+
+# CRUD Operations for Data Uji
+@app.route('/api/data_uji', methods=['GET', 'POST', 'PUT', 'DELETE'])
+def data_uji_crud():
+    """CRUD operations untuk data uji"""
+    try:
+        connection = create_mysql_connection()
+        if not connection:
+            return jsonify({'error': 'Cannot connect to database'}), 500
+        
+        cursor = connection.cursor(dictionary=True)
+        
+        if request.method == 'GET':
+            # Read operation
+            page = request.args.get('page', 1, type=int)
+            per_page = request.args.get('per_page', 20, type=int)
+            search = request.args.get('search', '')
+            
+            offset = (page - 1) * per_page
+            
+            # Build query with search
+            where_clause = ""
+            params = []
+            if search:
+                where_clause = """
+                WHERE nama_keluarga LIKE %s OR jenis_kelamin LIKE %s 
+                OR status_stunting LIKE %s OR kondisi_sanitasi LIKE %s
+                """
+                search_param = f"%{search}%"
+                params = [search_param, search_param, search_param, search_param]
+            
+            # Get total count
+            count_query = f"SELECT COUNT(*) as total FROM data_uji_y {where_clause}"
+            cursor.execute(count_query, params)
+            total = cursor.fetchone()['total']
+            
+            # Get paginated data
+            data_query = f"""
+            SELECT id, nama_keluarga, usia, jenis_kelamin, pendapatan, tinggi, berat, 
+                   air_bersih, kondisi_sanitasi, susu_formula, status_stunting, 
+                   created_at, updated_at
+            FROM data_uji_y {where_clause}
+            ORDER BY id DESC
+            LIMIT %s OFFSET %s
+            """
+            cursor.execute(data_query, params + [per_page, offset])
+            data = cursor.fetchall()
+            
+            return jsonify({
+                'data': data,
+                'pagination': {
+                    'page': page,
+                    'per_page': per_page,
+                    'total': total,
+                    'pages': math.ceil(total / per_page)
+                }
+            })
+        
+        elif request.method == 'POST':
+            # Create operation
+            data = request.get_json()
+            
+            insert_query = """
+            INSERT INTO data_uji_y (nama_keluarga, usia, jenis_kelamin, pendapatan, tinggi, berat, 
+                                   air_bersih, kondisi_sanitasi, susu_formula, status_stunting)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+           
+
+            """
+            values = (
+                data['nama_keluarga'], data['usia'], data['jenis_kelamin'], data['pendapatan'],
+                data['tinggi'], data['berat'], data['air_bersih'], data['kondisi_sanitasi'],
+                data['susu_formula'], data['status_stunting']
+            )
+            
+            cursor.execute(insert_query, values)
+            connection.commit()
+            
+            return jsonify({'success': True, 'id': cursor.lastrowid, 'message': 'Data berhasil ditambahkan'})
+        
+        elif request.method == 'PUT':
+            # Update operation
+            data = request.get_json()
+            record_id = data.get('id')
+            
+            update_query = """
+            UPDATE data_uji_y SET 
+                nama_keluarga=%s, usia=%s, jenis_kelamin=%s, pendapatan=%s, tinggi=%s, berat=%s,
+                air_bersih=%s, kondisi_sanitasi=%s, susu_formula=%s, status_stunting=%s
+            WHERE id=%s
+            """
+            values = (
+                data['nama_keluarga'], data['usia'], data['jenis_kelamin'], data['pendapatan'],
+                data['tinggi'], data['berat'], data['air_bersih'], data['kondisi_sanitasi'],
+                data['susu_formula'], data['status_stunting'], record_id
+            )
+            
+            cursor.execute(update_query, values)
+            connection.commit()
+            
+            return jsonify({'success': True, 'message': 'Data berhasil diupdate'})
+        
+        elif request.method == 'DELETE':
+            # Delete operation
+            record_id = request.args.get('id', type=int)
+            
+            delete_query = "DELETE FROM data_uji_y WHERE id = %s"
+            cursor.execute(delete_query, (record_id,))
+            connection.commit()
+            
+            return jsonify({'success': True, 'message': 'Data berhasil dihapus'})
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if connection and connection.is_connected():
+            cursor.close()
+            connection.close()
+
+# Statistics Dashboard API
+@app.route('/api/database_statistics', methods=['GET'])
+def get_database_statistics():
+    """Get comprehensive database statistics"""
+    try:
+        connection = create_mysql_connection()
+        if not connection:
+            return jsonify({'error': 'Cannot connect to database'}), 500
+        
+        cursor = connection.cursor(dictionary=True)
+        
+        # Basic counts
+        cursor.execute("SELECT COUNT(*) as total FROM data_latih")
+        total_latih = cursor.fetchone()['total']
+        
+        cursor.execute("SELECT COUNT(*) as total FROM data_uji_y")
+        total_uji = cursor.fetchone()['total']
+        
+        # Status distribution for data_latih
+        cursor.execute("""
+            SELECT status_stunting, COUNT(*) as count 
+            FROM data_latih 
+            GROUP BY status_stunting
+        """)
+        status_latih = {row['status_stunting']: row['count'] for row in cursor.fetchall()}
+        
+        # Status distribution for data_uji_y
+        cursor.execute("""
+            SELECT status_stunting, COUNT(*) as count 
+            FROM data_uji_y 
+            GROUP BY status_stunting
+        """)
+        status_uji = {row['status_stunting']: row['count'] for row in cursor.fetchall()}
+        
+        # Gender distribution
+        cursor.execute("""
+            SELECT jenis_kelamin, status_stunting, COUNT(*) as count
+            FROM v_data_stunting
+            GROUP BY jenis_kelamin, status_stunting
+            ORDER BY jenis_kelamin, status_stunting
+        """)
+        gender_stats = cursor.fetchall()
+        
+        # Age distribution
+        cursor.execute("""
+            SELECT 
+                CASE 
+                    WHEN usia < 12 THEN '0-11 bulan'
+                    WHEN usia < 24 THEN '12-23 bulan'
+                    WHEN usia < 36 THEN '24-35 bulan'
+                    WHEN usia < 48 THEN '36-47 bulan'
+                    ELSE '48+ bulan'
+                END as age_group,
+                status_stunting,
+                COUNT(*) as count
+            FROM v_data_stunting
+            GROUP BY age_group, status_stunting
+            ORDER BY age_group, status_stunting
+        """)
+        age_stats = cursor.fetchall()
+        
+        # Income analysis
+        cursor.execute("""
+            SELECT 
+                CASE 
+                    WHEN pendapatan < 1000000 THEN 'Kurang dari 1 Juta'
+                    WHEN pendapatan < 2000000 THEN '1-2 Juta'
+                    WHEN pendapatan < 3000000 THEN '2-3 Juta'
+                    WHEN pendapatan < 4000000 THEN '3-4 Juta'
+                    ELSE 'Lebih dari 4 Juta'
+                END as income_group,
+                status_stunting,
+                COUNT(*) as count
+            FROM v_data_stunting
+            GROUP BY income_group, status_stunting
+            ORDER BY income_group, status_stunting
+        """)
+        income_stats = cursor.fetchall()
+        
+        # Sanitation analysis
+        cursor.execute("""
+            SELECT kondisi_sanitasi, status_stunting, COUNT(*) as count
+            FROM v_data_stunting
+            GROUP BY kondisi_sanitasi, status_stunting
+            ORDER BY kondisi_sanitasi, status_stunting
+        """)
+        sanitation_stats = cursor.fetchall()
+        
+        return jsonify({
+            'summary': {
+                'total_data_latih': total_latih,
+                'total_data_uji': total_uji,
+                'total_combined': total_latih + total_uji
+            },
+            'status_distribution': {
+                'data_latih': status_latih,
+                'data_uji': status_uji
+            },
+            'gender_analysis': gender_stats,
+            'age_analysis': age_stats,
+            'income_analysis': income_stats,
+            'sanitation_analysis': sanitation_stats
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if connection and connection.is_connected():
+            cursor.close()
+            connection.close()
+
+# Upload Excel file endpoint
+@app.route('/api/upload_excel', methods=['POST'])
+def upload_excel():
+    """Upload and process Excel file"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file uploaded'}), 400
+        
+        file = request.files['file']
+        table_type = request.form.get('table_type', 'data_latih')
+        
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+        
+        if not file.filename.endswith(('.xlsx', '.xls')):
+            return jsonify({'error': 'File must be Excel format (.xlsx or .xls)'}), 400
+        
+        # Read Excel file
+        df = pd.read_excel(file)
+        
+        # Validate columns based on table type
+        if table_type == 'data_latih':
+            required_columns = ['Nama', 'usia', 'jenis_kelamin', 'pendapatan', 'tinggi', 'berat', 
+                              'air_bersih', 'kondisi_sanitasi', 'susu_formula', 'status_stunting']
+            df = df.rename(columns={'Nama': 'nama'})  # Standardize column name
+        else:  # data_uji
+            required_columns = ['nama_keluarga', 'usia', 'jenis_kelamin', 'pendapatan', 'tinggi', 'berat', 
+                              'air_bersih', 'kondisi_sanitasi', 'susu_formula', 'status_stunting']
+        
+        # Check if all required columns exist
+        missing_columns = [col for col in required_columns if col not in df.columns]
+        if missing_columns:
+            return jsonify({
+                'error': f'Missing required columns: {", ".join(missing_columns)}',
+                'required_columns': required_columns,
+                'found_columns': list(df.columns)
+            }), 400
+        
+        # Process and insert data
+        connection = create_mysql_connection()
+        if not connection:
+            return jsonify({'error': 'Cannot connect to database'}), 500
+        
+        cursor = connection.cursor()
+        success_count = 0
+        error_count = 0
+        errors = []
+        
+        for index, row in df.iterrows():
+            try:
+                if table_type == 'data_latih':
+                    insert_query = """
+                    INSERT INTO data_latih (nama, usia, jenis_kelamin, pendapatan, tinggi, berat, 
+                                           air_bersih, kondisi_sanitasi, susu_formula, status_stunting)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """
+                    values = (
+                        str(row['nama']), int(row['usia']), str(row['jenis_kelamin']), 
+                        int(row['pendapatan']), float(row['tinggi']), float(row['berat']),
+                        str(row['air_bersih']), str(row['kondisi_sanitasi']), 
+                        str(row['susu_formula']), str(row['status_stunting'])
+                    )
+                else:  # data_uji
+                    insert_query = """
+                    INSERT INTO data_uji_y (nama_keluarga, usia, jenis_kelamin, pendapatan, tinggi, berat, 
+                                           air_bersih, kondisi_sanitasi, susu_formula, status_stunting)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """
+                    values = (
+                        str(row['nama_keluarga']), int(row['usia']), str(row['jenis_kelamin']), 
+                        int(row['pendapatan']), float(row['tinggi']), float(row['berat']),
+                        str(row['air_bersih']), str(row['kondisi_sanitasi']), 
+                        str(row['susu_formula']), str(row['status_stunting'])
+                    )
+                
+                cursor.execute(insert_query, values)
+                success_count += 1
+                
+            except Exception as e:
+                error_count += 1
+                errors.append(f"Row {index + 1}: {str(e)}")
+        
+        connection.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Upload completed. {success_count} records imported successfully.',
+            'summary': {
+                'total_rows': len(df),
+                'success_count': success_count,
+                'error_count': error_count,
+                'errors': errors[:10]  # Limit error messages
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'Upload failed: {str(e)}'}), 500
+    finally:
+        if connection and connection.is_connected():
+            cursor.close()
+            connection.close()
+
+# Route untuk halaman database management
+@app.route('/database')
+def database():
+    return render_template('database.html')
