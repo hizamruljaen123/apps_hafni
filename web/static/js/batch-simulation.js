@@ -168,28 +168,28 @@ function displayConfusionMatrix(confusionMatrix) {
             {
                 x: 'Tidak Stunting',
                 y: 'Tidak Stunting',
-                text: 'TN: ' + tn,
+                text:  tn,
                 font: { color: 'black' },
                 showarrow: false
             },
             {
                 x: 'Stunting',
                 y: 'Tidak Stunting',
-                text: 'FP: ' + fp,
+                text: fp,
                 font: { color: 'black' },
                 showarrow: false
             },
             {
                 x: 'Tidak Stunting',
                 y: 'Stunting',
-                text: 'FN: ' + fn,
+                text: fn,
                 font: { color: 'black' },
                 showarrow: false
             },
             {
                 x: 'Stunting',
                 y: 'Stunting',
-                text: 'TP: ' + tp,
+                text: tp,
                 font: { color: 'black' },
                 showarrow: false
             }
