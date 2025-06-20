@@ -92,7 +92,22 @@ train_file_path = FILE_PATHS['train_data']
 test_file_path = FILE_PATHS['test_data']
 
 app = Flask(__name__)
-app.json_encoder = NumpyEncoder
+
+# Flask >=2.2: Custom JSON provider for NumPy types
+from flask.json.provider import DefaultJSONProvider
+class NumpyJSONProvider(DefaultJSONProvider):
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        elif isinstance(obj, np.bool_):
+            return bool(obj)
+        return super().default(obj)
+
+app.json = NumpyJSONProvider(app)
 
 # Cek model dan melatih model jika tidak ada
 def check_and_train_model():
@@ -1818,8 +1833,6 @@ def data_uji_crud():
             INSERT INTO data_uji_y (nama_keluarga, usia, jenis_kelamin, pendapatan, tinggi, berat, 
                                    air_bersih, kondisi_sanitasi, susu_formula, status_stunting)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-           
-
             """
             values = (
                 data['nama_keluarga'], data['usia'], data['jenis_kelamin'], data['pendapatan'],
@@ -2088,3 +2101,8 @@ def upload_excel():
 @app.route('/database')
 def database():
     return render_template('database.html')
+
+if __name__ == '__main__':
+    # Periksa dan latih model jika belum ada
+    check_and_train_model()
+    app.run(debug=True)
