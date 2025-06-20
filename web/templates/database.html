@@ -53,618 +53,643 @@
             display: none;
         }
         
-        /* Sidebar styles */
-        #sidebar {
-            min-width: 220px;
-            min-height: 100vh;
-        }
-        
-        #sidebar .nav-link {
-            color: #fff;
-        }
-        
-        #sidebar .nav-link:hover {
-            background-color: #495057;
-        }
-        
-        #sidebar .nav-link.active {
-            background-color: #007bff;
-            color: #fff;
+        /* Sidebar styles (now handled by Bootstrap) */
+        html {
+            scroll-behavior: smooth;
         }
     </style>
 </head>
 <body>
-    <div class="d-flex">
-        <!-- Sidebar -->
-        <nav id="sidebar" class="bg-dark text-white p-3" style="min-width:220px;min-height:100vh;">
-            <h5 class="mb-4"><i class="fas fa-bars"></i> Menu</h5>
-            <ul class="nav flex-column">
-                <li class="nav-item mb-2">
-                    <a class="nav-link text-white" href="/">
-                        <i class="fas fa-home"></i> Dashboard
-                    </a>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
+        <a class="navbar-brand" href="/"><i class="fas fa-database"></i> Database Management</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ml-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="/"><i class="fas fa-home"></i> Beranda</a>
                 </li>
-                <li class="nav-item mb-2">
-                    <a class="nav-link text-white" href="/simulation">
-                        <i class="fas fa-calculator"></i> Simulasi
-                    </a>
+                <li class="nav-item">
+                    <a class="nav-link" href="/simulation"><i class="fas fa-calculator"></i> Simulasi Naive Bayes</a>
                 </li>
-                <li class="nav-item mb-2">
-                    <a class="nav-link text-white active" href="/database">
-                        <i class="fas fa-database"></i> Database
-                    </a>
+                <li class="nav-item active">
+                    <a class="nav-link" href="/database"><i class="fas fa-database"></i> Database Management</a>
                 </li>
-                <li class="nav-item mb-2">
-                    <a class="nav-link text-white" href="/api/combined_data">
-                        <i class="fas fa-table"></i> Data Gabungan
-                    </a>
+                <li class="nav-item">
+                    <a class="nav-link" href="/open_train_data"><i class="fas fa-user"></i> Buka Data Latih</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/open_test_data"><i class="fas fa-sign-out-alt"></i> Buka Data Uji</a>
                 </li>
             </ul>
-        </nav>
-        <!-- Main Content -->
-        <div class="flex-grow-1">
-            <!-- Status Database & Info Connection -->
-            <div class="container mt-3">
-                <!-- <div id="database-status"></div> -->
-                <!-- <div id="connection-info"></div> -->
-            </div>
-
-            <!-- Navbar -->
-            <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
-                <a class="navbar-brand" href="#"><i class="fas fa-database"></i> Database Management</a>
-                <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="collapse navbar-collapse" id="navbarNav">
-                    <ul class="navbar-nav ml-auto">
+        </div>
+    </nav>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar (Bootstrap style, same as index.html/simulation.html) -->
+            <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+                <div class="sidebar-sticky pt-3">
+                    <ul class="nav flex-column">
                         <li class="nav-item">
-                            <a class="nav-link" href="/"><i class="fas fa-home"></i> Dashboard</a>
+                            <a class="nav-link" href="/">
+                                <i class="fas fa-tachometer-alt"></i>
+                                Dashboard
+                            </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="/simulation"><i class="fas fa-calculator"></i> Simulasi</a>
+                            <a class="nav-link" href="/simulation">
+                                <i class="fas fa-calculator"></i>
+                                Simulasi Naive Bayes
+                            </a>
                         </li>
-                        <li class="nav-item active">
-                            <a class="nav-link" href="/database"><i class="fas fa-database"></i> Database</a>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="/database">
+                                <i class="fas fa-database"></i>
+                                Database Management
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/open_train_data">
+                                <i class="fas fa-users"></i>
+                                Buka Data Latih
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/open_test_data">
+                                <i class="fas fa-cogs"></i>
+                                Buka Data Uji
+                            </a>
                         </li>
                     </ul>
                 </div>
             </nav>
+            <!-- Main Content -->
+            <main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-md-4">
+                <!-- Status Database & Info Connection -->
+                <div class="container mt-3">
+                    <!-- <div id="database-status"></div> -->
+                    <!-- <div id="connection-info"></div> -->
+                </div>
 
-            <div class="container-fluid mt-4">
-                <!-- Database Status Section -->
-                <!-- <div class="row mb-4">
-                    <div class="col-12">
-                        <div class="card database-card">
-                            <div class="card-header table-info">
-                                <h5 class="mb-0"><i class="fas fa-server"></i> Status Koneksi Database</h5>
-                            </div>
-                            <div class="card-body">
-                                <div id="database-status">
-                                    <div class="text-center">
-                                        <div class="spinner-border text-primary" role="status">
-                                            <span class="sr-only">Loading...</span>
+                <!-- Navbar -->
+                <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
+                    <a class="navbar-brand" href="#"><i class="fas fa-database"></i> Database Management</a>
+                    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                    <div class="collapse navbar-collapse" id="navbarNav">
+                        <ul class="navbar-nav ml-auto">
+                            <li class="nav-item">
+                                <a class="nav-link" href="/"><i class="fas fa-home"></i> Dashboard</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="/simulation"><i class="fas fa-calculator"></i> Simulasi</a>
+                            </li>
+                            <li class="nav-item active">
+                                <a class="nav-link" href="/database"><i class="fas fa-database"></i> Database</a>
+                            </li>
+                        </ul>
+                    </div>
+                </nav>
+
+                <div class="container-fluid mt-4">
+                    <!-- Database Status Section -->
+                    <!-- <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card database-card">
+                                <div class="card-header table-info">
+                                    <h5 class="mb-0"><i class="fas fa-server"></i> Status Koneksi Database</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="database-status">
+                                        <div class="text-center">
+                                            <div class="spinner-border text-primary" role="status">
+                                                <span class="sr-only">Loading...</span>
+                                            </div>
+                                            <p class="mt-2">Checking database connection...</p>
                                         </div>
-                                        <p class="mt-2">Checking database connection...</p>
+                                    </div>
+                                    <button class="btn btn-custom btn-sm" onclick="checkDatabaseStatus()">
+                                        <i class="fas fa-sync-alt"></i> Refresh Status
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>         -->
+                    <!-- Table Information Section -->
+                    <!-- <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card database-card">
+                                <div class="card-header bg-info text-white">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-table"></i> Tabel data_latih
+                                        <button class="btn btn-sm btn-light float-right" onclick="showDataTable('data_latih')">
+                                            <i class="fas fa-eye"></i> View
+                                        </button>
+                                    </h6>
+                                </div>
+                                <div class="card-body" id="table-latih-info">
+                                    <p class="text-muted">Loading...</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card database-card">
+                                <div class="card-header bg-success text-white">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-table"></i> Tabel data_uji_y
+                                        <button class="btn btn-sm btn-light float-right" onclick="showDataTable('data_uji')">
+                                            <i class="fas fa-eye"></i> View
+                                        </button>
+                                    </h6>
+                                </div>
+                                <div class="card-body" id="table-uji-info">
+                                    <p class="text-muted">Loading...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>         -->
+                    <!-- Import Data Section -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card database-card">
+                                <div class="card-header import-section">
+                                    <h5 class="mb-0"><i class="fas fa-upload"></i> Import Data Excel ke MySQL</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle"></i>
+                                        <strong>Informasi:</strong> 
+                                        Fitur ini akan mengimpor data dari file Excel (data_latih.xlsx dan data_uji_y.xlsx) 
+                                        ke database MySQL. Data yang sudah ada akan dihapus terlebih dahulu.
+                                    </div>
+                                    
+                                    <div class="progress-container">
+                                        <div class="progress mb-3">
+                                            <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                                 role="progressbar" style="width: 0%"></div>
+                                        </div>
+                                        <div id="import-status"></div>
+                                    </div>
+                                    
+                                    <button class="btn btn-warning btn-lg" onclick="importExcelData()">
+                                        <i class="fas fa-file-excel"></i> Import Excel Data to MySQL
+                                    </button>
+                                    
+                                    <div id="import-result" class="mt-3"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="card database-card">
+                                <div class="card-header bg-warning text-dark">
+                                    <h5 class="mb-0"><i class="fas fa-cloud-upload-alt"></i> Upload File Excel</h5>
+                                </div>
+                                <div class="card-body">
+                                    <form id="upload-form" enctype="multipart/form-data">
+                                        <div class="form-group">
+                                            <label for="table-type">Pilih Tabel:</label>
+                                            <select class="form-control" id="table-type" name="table_type">
+                                                <option value="data_latih">Data Latih</option>
+                                                <option value="data_uji">Data Uji</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="excel-file">Pilih File Excel:</label>
+                                            <input type="file" class="form-control-file" id="excel-file" name="file" 
+                                                   accept=".xlsx,.xls" required>
+                                            <small class="form-text text-muted">Format: .xlsx atau .xls</small>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-upload"></i> Upload & Import
+                                        </button>
+                                    </form>
+                                    <div id="upload-result" class="mt-3"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>        <!-- Database Statistics Section -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card database-card">
+                                <div class="card-header bg-primary text-white">
+                                    <h5 class="mb-0">
+                                        <i class="fas fa-chart-bar"></i> Statistik Database
+                                        <button class="btn btn-sm btn-light float-right" onclick="loadDatabaseStatistics()">
+                                            <i class="fas fa-refresh"></i> Refresh
+                                        </button>
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="database-statistics">
+                                        <div class="text-center">
+                                            <div class="spinner-border text-primary" role="status">
+                                                <span class="sr-only">Loading...</span>
+                                            </div>
+                                            <p class="mt-2">Loading statistics...</p>
+                                        </div>
                                     </div>
                                 </div>
-                                <button class="btn btn-custom btn-sm" onclick="checkDatabaseStatus()">
-                                    <i class="fas fa-sync-alt"></i> Refresh Status
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Data Tables Section -->
+                    <div class="row mb-4" id="data-tables-section" style="display: none;">
+                        <div class="col-12">
+                            <div class="card database-card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">
+                                        <i class="fas fa-table"></i> <span id="table-title">Data Table</span>
+                                        <div class="float-right">
+                                            <button class="btn btn-sm btn-success" onclick="showAddModal()">
+                                                <i class="fas fa-plus"></i> Add New
+                                            </button>
+                                            <button class="btn btn-sm btn-secondary" onclick="hideDataTable()">
+                                                <i class="fas fa-times"></i> Close
+                                            </button>
+                                        </div>
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <!-- Search and Filter -->
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <input type="text" class="form-control" id="search-input" 
+                                                   placeholder="Search data..." onkeyup="searchData()">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <select class="form-control" id="per-page-select" onchange="changePerPage()">
+                                                <option value="10">10 per page</option>
+                                                <option value="20" selected>20 per page</option>
+                                                <option value="50">50 per page</option>
+                                                <option value="100">100 per page</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Data Table -->
+                                    <div class="table-responsive">
+                                        <table class="table table-striped table-hover" id="data-table">
+                                            <thead class="thead-dark" id="table-header">
+                                                <!-- Headers will be populated dynamically -->
+                                            </thead>
+                                            <tbody id="table-body">
+                                                <!-- Data will be populated dynamically -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    
+                                    <!-- Pagination -->
+                                    <nav aria-label="Data pagination">
+                                        <ul class="pagination justify-content-center" id="pagination">
+                                            <!-- Pagination will be populated dynamically -->
+                                        </ul>
+                                    </nav>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions Section -->
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card database-card">
+                                <div class="card-header bg-secondary text-white">
+                                    <h5 class="mb-0"><i class="fas fa-tools"></i> Quick Actions</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-3 mb-2">
+                                            <button class="btn btn-outline-primary btn-block" onclick="viewTrainingData()">
+                                                <i class="fas fa-eye"></i> View Training Data
+                                            </button>
+                                        </div>
+                                        <div class="col-md-3 mb-2">
+                                            <button class="btn btn-outline-success btn-block" onclick="viewTestData()">
+                                                <i class="fas fa-eye"></i> View Test Data
+                                            </button>
+                                        </div>
+                                        <div class="col-md-3 mb-2">
+                                            <button class="btn btn-outline-info btn-block" onclick="trainModel()">
+                                                <i class="fas fa-brain"></i> Train Model
+                                            </button>
+                                        </div>
+                                        <div class="col-md-3 mb-2">
+                                            <button class="btn btn-outline-warning btn-block" onclick="testModel()">
+                                                <i class="fas fa-test-tube"></i> Test Model
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal for Add/Edit Data -->
+                <div class="modal fade" id="dataModal" tabindex="-1" role="dialog">
+                    <div class="modal-dialog modal-lg" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="modalTitle">Add New Data</h5>
+                                <button type="button" class="close" data-dismiss="modal">
+                                    <span>&times;</span>
                                 </button>
                             </div>
-                        </div>
-                    </div>
-                </div>         -->
-                <!-- Table Information Section -->
-                <!-- <div class="row mb-4">
-                    <div class="col-md-6">
-                        <div class="card database-card">
-                            <div class="card-header bg-info text-white">
-                                <h6 class="mb-0">
-                                    <i class="fas fa-table"></i> Tabel data_latih
-                                    <button class="btn btn-sm btn-light float-right" onclick="showDataTable('data_latih')">
-                                        <i class="fas fa-eye"></i> View
-                                    </button>
-                                </h6>
-                            </div>
-                            <div class="card-body" id="table-latih-info">
-                                <p class="text-muted">Loading...</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="card database-card">
-                            <div class="card-header bg-success text-white">
-                                <h6 class="mb-0">
-                                    <i class="fas fa-table"></i> Tabel data_uji_y
-                                    <button class="btn btn-sm btn-light float-right" onclick="showDataTable('data_uji')">
-                                        <i class="fas fa-eye"></i> View
-                                    </button>
-                                </h6>
-                            </div>
-                            <div class="card-body" id="table-uji-info">
-                                <p class="text-muted">Loading...</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>         -->
-                <!-- Import Data Section -->
-                <div class="row mb-4">
-                    <div class="col-md-6">
-                        <div class="card database-card">
-                            <div class="card-header import-section">
-                                <h5 class="mb-0"><i class="fas fa-upload"></i> Import Data Excel ke MySQL</h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="alert alert-info">
-                                    <i class="fas fa-info-circle"></i>
-                                    <strong>Informasi:</strong> 
-                                    Fitur ini akan mengimpor data dari file Excel (data_latih.xlsx dan data_uji_y.xlsx) 
-                                    ke database MySQL. Data yang sudah ada akan dihapus terlebih dahulu.
-                                </div>
-                                
-                                <div class="progress-container">
-                                    <div class="progress mb-3">
-                                        <div class="progress-bar progress-bar-striped progress-bar-animated" 
-                                             role="progressbar" style="width: 0%"></div>
-                                    </div>
-                                    <div id="import-status"></div>
-                                </div>
-                                
-                                <button class="btn btn-warning btn-lg" onclick="importExcelData()">
-                                    <i class="fas fa-file-excel"></i> Import Excel Data to MySQL
-                                </button>
-                                
-                                <div id="import-result" class="mt-3"></div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="col-md-6">
-                        <div class="card database-card">
-                            <div class="card-header bg-warning text-dark">
-                                <h5 class="mb-0"><i class="fas fa-cloud-upload-alt"></i> Upload File Excel</h5>
-                            </div>
-                            <div class="card-body">
-                                <form id="upload-form" enctype="multipart/form-data">
-                                    <div class="form-group">
-                                        <label for="table-type">Pilih Tabel:</label>
-                                        <select class="form-control" id="table-type" name="table_type">
-                                            <option value="data_latih">Data Latih</option>
-                                            <option value="data_uji">Data Uji</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="excel-file">Pilih File Excel:</label>
-                                        <input type="file" class="form-control-file" id="excel-file" name="file" 
-                                               accept=".xlsx,.xls" required>
-                                        <small class="form-text text-muted">Format: .xlsx atau .xls</small>
-                                    </div>
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="fas fa-upload"></i> Upload & Import
-                                    </button>
-                                </form>
-                                <div id="upload-result" class="mt-3"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>        <!-- Database Statistics Section -->
-                <div class="row mb-4">
-                    <div class="col-12">
-                        <div class="card database-card">
-                            <div class="card-header bg-primary text-white">
-                                <h5 class="mb-0">
-                                    <i class="fas fa-chart-bar"></i> Statistik Database
-                                    <button class="btn btn-sm btn-light float-right" onclick="loadDatabaseStatistics()">
-                                        <i class="fas fa-refresh"></i> Refresh
-                                    </button>
-                                </h5>
-                            </div>
-                            <div class="card-body">
-                                <div id="database-statistics">
-                                    <div class="text-center">
-                                        <div class="spinner-border text-primary" role="status">
-                                            <span class="sr-only">Loading...</span>
-                                        </div>
-                                        <p class="mt-2">Loading statistics...</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Data Tables Section -->
-                <div class="row mb-4" id="data-tables-section" style="display: none;">
-                    <div class="col-12">
-                        <div class="card database-card">
-                            <div class="card-header">
-                                <h5 class="mb-0">
-                                    <i class="fas fa-table"></i> <span id="table-title">Data Table</span>
-                                    <div class="float-right">
-                                        <button class="btn btn-sm btn-success" onclick="showAddModal()">
-                                            <i class="fas fa-plus"></i> Add New
-                                        </button>
-                                        <button class="btn btn-sm btn-secondary" onclick="hideDataTable()">
-                                            <i class="fas fa-times"></i> Close
-                                        </button>
-                                    </div>
-                                </h5>
-                            </div>
-                            <div class="card-body">
-                                <!-- Search and Filter -->
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <input type="text" class="form-control" id="search-input" 
-                                               placeholder="Search data..." onkeyup="searchData()">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <select class="form-control" id="per-page-select" onchange="changePerPage()">
-                                            <option value="10">10 per page</option>
-                                            <option value="20" selected>20 per page</option>
-                                            <option value="50">50 per page</option>
-                                            <option value="100">100 per page</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                
-                                <!-- Data Table -->
-                                <div class="table-responsive">
-                                    <table class="table table-striped table-hover" id="data-table">
-                                        <thead class="thead-dark" id="table-header">
-                                            <!-- Headers will be populated dynamically -->
-                                        </thead>
-                                        <tbody id="table-body">
-                                            <!-- Data will be populated dynamically -->
-                                        </tbody>
-                                    </table>
-                                </div>
-                                
-                                <!-- Pagination -->
-                                <nav aria-label="Data pagination">
-                                    <ul class="pagination justify-content-center" id="pagination">
-                                        <!-- Pagination will be populated dynamically -->
-                                    </ul>
-                                </nav>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Quick Actions Section -->
-                <div class="row">
-                    <div class="col-12">
-                        <div class="card database-card">
-                            <div class="card-header bg-secondary text-white">
-                                <h5 class="mb-0"><i class="fas fa-tools"></i> Quick Actions</h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-md-3 mb-2">
-                                        <button class="btn btn-outline-primary btn-block" onclick="viewTrainingData()">
-                                            <i class="fas fa-eye"></i> View Training Data
-                                        </button>
-                                    </div>
-                                    <div class="col-md-3 mb-2">
-                                        <button class="btn btn-outline-success btn-block" onclick="viewTestData()">
-                                            <i class="fas fa-eye"></i> View Test Data
-                                        </button>
-                                    </div>
-                                    <div class="col-md-3 mb-2">
-                                        <button class="btn btn-outline-info btn-block" onclick="trainModel()">
-                                            <i class="fas fa-brain"></i> Train Model
-                                        </button>
-                                    </div>
-                                    <div class="col-md-3 mb-2">
-                                        <button class="btn btn-outline-warning btn-block" onclick="testModel()">
-                                            <i class="fas fa-test-tube"></i> Test Model
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Modal for Add/Edit Data -->
-            <div class="modal fade" id="dataModal" tabindex="-1" role="dialog">
-                <div class="modal-dialog modal-lg" role="document">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="modalTitle">Add New Data</h5>
-                            <button type="button" class="close" data-dismiss="modal">
-                                <span>&times;</span>
-                            </button>
-                        </div>
-                        <div class="modal-body">
-                            <form id="dataForm">
-                                <input type="hidden" id="recordId" name="id">
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="nama" id="nama-label">Nama:</label>
-                                            <input type="text" class="form-control" id="nama" name="nama" required>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="usia">Usia (bulan):</label>
-                                            <input type="number" class="form-control" id="usia" name="usia" min="0" max="60" required>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="jenis_kelamin">Jenis Kelamin:</label>
-                                            <select class="form-control" id="jenis_kelamin" name="jenis_kelamin" required>
-                                                <option value="">Pilih...</option>
-                                                <option value="Laki-laki">Laki-laki</option>
-                                                <option value="Perempuan">Perempuan</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="pendapatan">Pendapatan:</label>
-                                            <input type="number" class="form-control" id="pendapatan" name="pendapatan" min="0" required>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="tinggi">Tinggi (cm):</label>
-                                            <input type="number" class="form-control" id="tinggi" name="tinggi" step="0.01" min="0" required>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="berat">Berat (kg):</label>
-                                            <input type="number" class="form-control" id="berat" name="berat" step="0.01" min="0" required>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-md-4">
-                                        <div class="form-group">
-                                            <label for="air_bersih">Air Bersih:</label>
-                                            <select class="form-control" id="air_bersih" name="air_bersih" required>
-                                                <option value="">Pilih...</option>
-                                                <option value="Ya">Ya</option>
-                                                <option value="Tidak">Tidak</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="form-group">
-                                            <label for="kondisi_sanitasi">Kondisi Sanitasi:</label>
-                                            <select class="form-control" id="kondisi_sanitasi" name="kondisi_sanitasi" required>
-                                                <option value="">Pilih...</option>
-                                                <option value="Baik">Baik</option>
-                                                <option value="Cukup">Cukup</option>
-                                                <option value="Buruk">Buruk</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="form-group">
-                                            <label for="susu_formula">Susu Formula:</label>
-                                            <select class="form-control" id="susu_formula" name="susu_formula" required>
-                                                <option value="">Pilih...</option>
-                                                <option value="Ya">Ya</option>
-                                                <option value="Tidak">Tidak</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-md-12">
-                                        <div class="form-group">
-                                            <label for="status_stunting">Status Stunting:</label>
-                                            <select class="form-control" id="status_stunting" name="status_stunting" required>
-                                                <option value="">Pilih...</option>
-                                                <option value="Ya">Ya</option>
-                                                <option value="Tidak">Tidak</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                            <button type="button" class="btn btn-primary" onclick="saveData()">Save</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Bootstrap JS -->
-            <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-            <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/js/bootstrap.bundle.min.js"></script>
-            
-            <script>
-                // Check database status on page load
-                $(document).ready(function() {
-                    checkDatabaseStatus();
-                });
-
-                function checkDatabaseStatus() {
-                    $.get('/api/database_status')
-                        .done(function(data) {
-                            let statusHtml = '';
-                            
-                            if (data.status === 'connected') {
-                                statusHtml = `
+                            <div class="modal-body">
+                                <form id="dataForm">
+                                    <input type="hidden" id="recordId" name="id">
                                     <div class="row">
                                         <div class="col-md-6">
-                                            <h6 class="status-connected"><i class="fas fa-check-circle"></i> Connected</h6>
-                                            <p><strong>Database:</strong> ${data.database}</p>
-                                            <p><strong>Total Records:</strong> ${data.total_records}</p>
+                                            <div class="form-group">
+                                                <label for="nama" id="nama-label">Nama:</label>
+                                                <input type="text" class="form-control" id="nama" name="nama" required>
+                                            </div>
                                         </div>
                                         <div class="col-md-6">
-                                            <p class="text-muted">${data.message}</p>
+                                            <div class="form-group">
+                                                <label for="usia">Usia (bulan):</label>
+                                                <input type="number" class="form-control" id="usia" name="usia" min="0" max="60" required>
+                                            </div>
                                         </div>
                                     </div>
-                                `;
-                                
-                                // Update table info
-                                updateTableInfo(data.tables);
-                            } else {
-                                statusHtml = `
-                                    <div class="alert alert-danger">
-                                        <h6 class="status-disconnected"><i class="fas fa-times-circle"></i> ${data.status}</h6>
-                                        <p>${data.message}</p>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="jenis_kelamin">Jenis Kelamin:</label>
+                                                <select class="form-control" id="jenis_kelamin" name="jenis_kelamin" required>
+                                                    <option value="">Pilih...</option>
+                                                    <option value="Laki-laki">Laki-laki</option>
+                                                    <option value="Perempuan">Perempuan</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="pendapatan">Pendapatan:</label>
+                                                <input type="number" class="form-control" id="pendapatan" name="pendapatan" min="0" required>
+                                            </div>
+                                        </div>
                                     </div>
-                                `;
-                            }
-                            
-                            $('#database-status').html(statusHtml);
-                        })
-                        .fail(function() {
-                            $('#database-status').html(`
-                                <div class="alert alert-danger">
-                                    <h6 class="status-disconnected"><i class="fas fa-times-circle"></i> Connection Failed</h6>
-                                    <p>Unable to connect to database server</p>
-                                </div>
-                            `);
-                        });
-                }
-
-                function updateTableInfo(tables) {
-                    // Update data_latih info
-                    if (tables.data_latih && tables.data_latih.exists) {
-                        $('#table-latih-info').html(`
-                            <p><i class="fas fa-check-circle text-success"></i> Table exists</p>
-                            <p><strong>Records:</strong> ${tables.data_latih.count}</p>
-                        `);
-                    } else {
-                        $('#table-latih-info').html(`
-                            <p><i class="fas fa-times-circle text-danger"></i> Table not found or empty</p>
-                        `);
-                    }
-
-                    // Update data_uji_y info
-                    if (tables.data_uji_y && tables.data_uji_y.exists) {
-                        $('#table-uji-info').html(`
-                            <p><i class="fas fa-check-circle text-success"></i> Table exists</p>
-                            <p><strong>Records:</strong> ${tables.data_uji_y.count}</p>
-                        `);
-                    } else {
-                        $('#table-uji-info').html(`
-                            <p><i class="fas fa-times-circle text-danger"></i> Table not found or empty</p>
-                        `);
-                    }
-                }
-
-                function importExcelData() {
-                    if (!confirm('This will delete existing data and import from Excel files. Continue?')) {
-                        return;
-                    }
-
-                    // Show progress
-                    $('.progress-container').show();
-                    $('#import-result').html('');
-                    $('.progress-bar').css('width', '10%');
-                    $('#import-status').html('Starting import...');
-
-                    $.ajax({
-                        url: '/api/import_excel_to_mysql',
-                        type: 'POST',
-                        timeout: 60000, // 60 seconds timeout
-                        xhr: function() {
-                            var xhr = new window.XMLHttpRequest();
-                            // Progress simulation
-                            setTimeout(function() { $('.progress-bar').css('width', '30%'); $('#import-status').html('Reading Excel files...'); }, 1000);
-                            setTimeout(function() { $('.progress-bar').css('width', '60%'); $('#import-status').html('Importing data...'); }, 3000);
-                            setTimeout(function() { $('.progress-bar').css('width', '90%'); $('#import-status').html('Finalizing...'); }, 5000);
-                            return xhr;
-                        },
-                        success: function(data) {
-                            $('.progress-bar').css('width', '100%');
-                            $('#import-status').html('Import completed!');
-                            
-                            if (data.success) {
-                                $('#import-result').html(`
-                                    <div class="alert alert-success">
-                                        <h6><i class="fas fa-check-circle"></i> Import Successful!</h6>
-                                        <p>Data imported:</p>
-                                        <ul>
-                                            <li>data_latih: ${data.imported.data_latih} records</li>
-                                            <li>data_uji_y: ${data.imported.data_uji_y} records</li>
-                                            <li><strong>Total: ${data.imported.total} records</strong></li>
-                                        </ul>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="tinggi">Tinggi (cm):</label>
+                                                <input type="number" class="form-control" id="tinggi" name="tinggi" step="0.01" min="0" required>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="berat">Berat (kg):</label>
+                                                <input type="number" class="form-control" id="berat" name="berat" step="0.01" min="0" required>
+                                            </div>
+                                        </div>
                                     </div>
-                                `);
-                                
-                                // Refresh database status
-                                setTimeout(function() {
-                                    checkDatabaseStatus();
-                                    $('.progress-container').hide();
-                                }, 2000);
-                            } else {
-                                $('#import-result').html(`
-                                    <div class="alert alert-warning">
-                                        <h6><i class="fas fa-exclamation-triangle"></i> Partial Success</h6>
-                                        <p>${data.message}</p>
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label for="air_bersih">Air Bersih:</label>
+                                                <select class="form-control" id="air_bersih" name="air_bersih" required>
+                                                    <option value="">Pilih...</option>
+                                                    <option value="Ya">Ya</option>
+                                                    <option value="Tidak">Tidak</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label for="kondisi_sanitasi">Kondisi Sanitasi:</label>
+                                                <select class="form-control" id="kondisi_sanitasi" name="kondisi_sanitasi" required>
+                                                    <option value="">Pilih...</option>
+                                                    <option value="Baik">Baik</option>
+                                                    <option value="Cukup">Cukup</option>
+                                                    <option value="Buruk">Buruk</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label for="susu_formula">Susu Formula:</label>
+                                                <select class="form-control" id="susu_formula" name="susu_formula" required>
+                                                    <option value="">Pilih...</option>
+                                                    <option value="Ya">Ya</option>
+                                                    <option value="Tidak">Tidak</option>
+                                                </select>
+                                            </div>
+                                        </div>
                                     </div>
-                                `);
-                            }
-                        },
-                        error: function(xhr) {
-                            $('.progress-bar').css('width', '100%').addClass('bg-danger');
-                            $('#import-status').html('Import failed!');
-                            
-                            let errorMsg = 'Unknown error occurred';
-                            if (xhr.responseJSON && xhr.responseJSON.error) {
-                                errorMsg = xhr.responseJSON.error;
-                            }
-                            
-                            $('#import-result').html(`
-                                <div class="alert alert-danger">
-                                    <h6><i class="fas fa-times-circle"></i> Import Failed</h6>
-                                    <p>${errorMsg}</p>
-                                </div>
-                            `);
-                        }
-                    });
-                }
-
-                function viewTrainingData() {
-                    window.open('/train_data', '_blank');
-                }
-
-                function viewTestData() {
-                    window.open('/test_data', '_blank');
-                }
-
-                function trainModel() {
-                    if (confirm('Train the model using current database data?')) {
-                        $.get('/train')
-                            .done(function(data) {
-                                alert('Model training completed: ' + data.message);
-                            })
-                            .fail(function() {
-                                alert('Model training failed!');
-                            });
-                    }
-                }
-
-                function testModel() {
-                    if (confirm('Test the model using current database data?')) {
-                        $.get('/test')
-                            .done(function(data) {
-                                console.log('Test results:', data);
-                                alert('Model testing completed. Check console for results.');
-                            })                    .fail(function() {
-                                alert('Model testing failed!');
-                            });
-                    }
-                }
-            </script>
-            <script src="{{ url_for('static', filename='js/database.js') }}"></script>
+                                    <div class="row">
+                                        <div class="col-md-12">
+                                            <div class="form-group">
+                                                <label for="status_stunting">Status Stunting:</label>
+                                                <select class="form-control" id="status_stunting" name="status_stunting" required>
+                                                    <option value="">Pilih...</option>
+                                                    <option value="Ya">Ya</option>
+                                                    <option value="Tidak">Tidak</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                                <button type="button" class="btn btn-primary" onclick="saveData()">Save</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
         </div>
     </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Check database status on page load
+        $(document).ready(function() {
+            checkDatabaseStatus();
+        });
+
+        function checkDatabaseStatus() {
+            $.get('/api/database_status')
+                .done(function(data) {
+                    let statusHtml = '';
+                    
+                    if (data.status === 'connected') {
+                        statusHtml = `
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6 class="status-connected"><i class="fas fa-check-circle"></i> Connected</h6>
+                                    <p><strong>Database:</strong> ${data.database}</p>
+                                    <p><strong>Total Records:</strong> ${data.total_records}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p class="text-muted">${data.message}</p>
+                                </div>
+                            </div>
+                        `;
+                        
+                        // Update table info
+                        updateTableInfo(data.tables);
+                    } else {
+                        statusHtml = `
+                            <div class="alert alert-danger">
+                                <h6 class="status-disconnected"><i class="fas fa-times-circle"></i> ${data.status}</h6>
+                                <p>${data.message}</p>
+                            </div>
+                        `;
+                    }
+                    
+                    $('#database-status').html(statusHtml);
+                })
+                .fail(function() {
+                    $('#database-status').html(`
+                        <div class="alert alert-danger">
+                            <h6 class="status-disconnected"><i class="fas fa-times-circle"></i> Connection Failed</h6>
+                            <p>Unable to connect to database server</p>
+                        </div>
+                    `);
+                });
+        }
+
+        function updateTableInfo(tables) {
+            // Update data_latih info
+            if (tables.data_latih && tables.data_latih.exists) {
+                $('#table-latih-info').html(`
+                    <p><i class="fas fa-check-circle text-success"></i> Table exists</p>
+                    <p><strong>Records:</strong> ${tables.data_latih.count}</p>
+                `);
+            } else {
+                $('#table-latih-info').html(`
+                    <p><i class="fas fa-times-circle text-danger"></i> Table not found or empty</p>
+                `);
+            }
+
+            // Update data_uji_y info
+            if (tables.data_uji_y && tables.data_uji_y.exists) {
+                $('#table-uji-info').html(`
+                    <p><i class="fas fa-check-circle text-success"></i> Table exists</p>
+                    <p><strong>Records:</strong> ${tables.data_uji_y.count}</p>
+                `);
+            } else {
+                $('#table-uji-info').html(`
+                    <p><i class="fas fa-times-circle text-danger"></i> Table not found or empty</p>
+                `);
+            }
+        }
+
+        function importExcelData() {
+            if (!confirm('This will delete existing data and import from Excel files. Continue?')) {
+                return;
+            }
+
+            // Show progress
+            $('.progress-container').show();
+            $('#import-result').html('');
+            $('.progress-bar').css('width', '10%');
+            $('#import-status').html('Starting import...');
+
+            $.ajax({
+                url: '/api/import_excel_to_mysql',
+                type: 'POST',
+                timeout: 60000, // 60 seconds timeout
+                xhr: function() {
+                    var xhr = new window.XMLHttpRequest();
+                    // Progress simulation
+                    setTimeout(function() { $('.progress-bar').css('width', '30%'); $('#import-status').html('Reading Excel files...'); }, 1000);
+                    setTimeout(function() { $('.progress-bar').css('width', '60%'); $('#import-status').html('Importing data...'); }, 3000);
+                    setTimeout(function() { $('.progress-bar').css('width', '90%'); $('#import-status').html('Finalizing...'); }, 5000);
+                    return xhr;
+                },
+                success: function(data) {
+                    $('.progress-bar').css('width', '100%');
+                    $('#import-status').html('Import completed!');
+                    
+                    if (data.success) {
+                        $('#import-result').html(`
+                            <div class="alert alert-success">
+                                <h6><i class="fas fa-check-circle"></i> Import Successful!</h6>
+                                <p>Data imported:</p>
+                                <ul>
+                                    <li>data_latih: ${data.imported.data_latih} records</li>
+                                    <li>data_uji_y: ${data.imported.data_uji_y} records</li>
+                                    <li><strong>Total: ${data.imported.total} records</strong></li>
+                                </ul>
+                            </div>
+                        `);
+                        
+                        // Refresh database status
+                        setTimeout(function() {
+                            checkDatabaseStatus();
+                            $('.progress-container').hide();
+                        }, 2000);
+                    } else {
+                        $('#import-result').html(`
+                            <div class="alert alert-warning">
+                                <h6><i class="fas fa-exclamation-triangle"></i> Partial Success</h6>
+                                <p>${data.message}</p>
+                            </div>
+                        `);
+                    }
+                },
+                error: function(xhr) {
+                    $('.progress-bar').css('width', '100%').addClass('bg-danger');
+                    $('#import-status').html('Import failed!');
+                    
+                    let errorMsg = 'Unknown error occurred';
+                    if (xhr.responseJSON && xhr.responseJSON.error) {
+                        errorMsg = xhr.responseJSON.error;
+                    }
+                    
+                    $('#import-result').html(`
+                        <div class="alert alert-danger">
+                            <h6><i class="fas fa-times-circle"></i> Import Failed</h6>
+                            <p>${errorMsg}</p>
+                        </div>
+                    `);
+                }
+            });
+        }
+
+        function viewTrainingData() {
+            window.open('/train_data', '_blank');
+        }
+
+        function viewTestData() {
+            window.open('/test_data', '_blank');
+        }
+
+        function trainModel() {
+            if (confirm('Train the model using current database data?')) {
+                $.get('/train')
+                    .done(function(data) {
+                        alert('Model training completed: ' + data.message);
+                    })
+                    .fail(function() {
+                        alert('Model training failed!');
+                    });
+            }
+        }
+
+        function testModel() {
+            if (confirm('Test the model using current database data?')) {
+                $.get('/test')
+                    .done(function(data) {
+                        console.log('Test results:', data);
+                        alert('Model testing completed. Check console for results.');
+                    })                    .fail(function() {
+                        alert('Model testing failed!');
+                    });
+            }
+        }
+    </script>
+    <script src="{{ url_for('static', filename='js/database.js') }}"></script>
 </body>
 </html>
