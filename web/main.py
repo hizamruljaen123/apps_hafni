@@ -58,34 +58,27 @@ def create_mysql_connection():
         return None
 
 def load_data_from_mysql(table_name):
-    """Load data from MySQL table"""
-    try:
-        connection = create_mysql_connection()
-        if not connection:
-            raise Exception("Cannot connect to MySQL database")
-        
-        # Query to load data
-        if table_name == 'data_latih':
-            query = SQL_QUERIES['select_train_data']
-            # Rename column for consistency
-            df = pd.read_sql(query, connection)
-            df = df.rename(columns={'nama': 'Nama'})
-        elif table_name == 'data_uji_y':
-            query = SQL_QUERIES['select_test_data']
-            df = pd.read_sql(query, connection)
-        else:
-            raise Exception(f"Unknown table: {table_name}")
-        
+    """Load data from MySQL table (NO EXCEL FALLBACK)"""
+    connection = create_mysql_connection()
+    if not connection:
+        raise Exception("Cannot connect to MySQL database. Pastikan MySQL aktif dan database stunting_db tersedia.")
+    # Query to load data
+    if table_name == 'data_latih':
+        query = SQL_QUERIES['select_train_data']
+        df = pd.read_sql(query, connection)
+        df = df.rename(columns={'nama': 'Nama'})
+    elif table_name == 'data_uji_y':
+        query = SQL_QUERIES['select_test_data']
+        df = pd.read_sql(query, connection)
+    elif table_name == 'combined_data':
+        query = SQL_QUERIES['select_combined_data']
+        df = pd.read_sql(query, connection)
+        df = df.rename(columns={'nama_keluarga': 'Nama Keluarga'})
+    else:
         connection.close()
-        return df
-        
-    except Exception as e:
-        print(f"Error loading data from MySQL table {table_name}: {e}")
-        # Fallback to Excel files if MySQL fails
-        if table_name == 'data_latih':
-            return pd.read_excel(FILE_PATHS['train_data'])
-        else:
-            return pd.read_excel(FILE_PATHS['test_data'])
+        raise Exception(f"Unknown table: {table_name}")
+    connection.close()
+    return df
 
 # File paths (kept as fallback)
 train_file_path = FILE_PATHS['train_data']
@@ -1827,6 +1820,7 @@ def data_uji_crud():
         
         elif request.method == 'POST':
             # Create operation
+           
             data = request.get_json()
             
             insert_query = """
@@ -2101,6 +2095,19 @@ def upload_excel():
 @app.route('/database')
 def database():
     return render_template('database.html')
+
+# Endpoint untuk mengambil data gabungan dari view v_data_stunting
+@app.route('/api/combined_data', methods=['GET'])
+def get_combined_data():
+    try:
+        connection = create_mysql_connection()
+        if not connection:
+            return jsonify({'error': 'Cannot connect to database'}), 500
+        df = pd.read_sql(SQL_QUERIES['select_combined_data'], connection)
+        connection.close()
+        return jsonify(df.to_dict(orient='records'))
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     # Periksa dan latih model jika belum ada

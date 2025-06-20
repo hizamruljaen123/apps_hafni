@@ -6,7 +6,7 @@ DATABASE_CONFIG = {
     'host': 'localhost',
     'database': 'stunting_db',
     'user': 'root',
-    'password': '',  # Update with your MySQL password
+    'password': '',  
     'port': 3306,
     'charset': 'utf8mb4',
     'collation': 'utf8mb4_unicode_ci',
