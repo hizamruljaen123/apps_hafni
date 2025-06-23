@@ -55,8 +55,7 @@
             opacity: 1;
             animation: fadeInUp 0.5s ease;
         }
-        
-        @keyframes fadeInUp {
+          @keyframes fadeInUp {
             from {
                 opacity: 0;
                 transform: translateY(30px);
@@ -64,6 +63,69 @@
             to {
                 opacity: 1;
                 transform: translateY(0);
+            }
+        }
+        
+        /* Custom Range Slider Styling */
+        .custom-range {
+            width: 100%;
+            height: 8px;
+            border-radius: 5px;
+            background: #ddd;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+            cursor: pointer;
+        }
+        
+        .custom-range:hover {
+            opacity: 1;
+        }
+        
+        .custom-range::-webkit-slider-thumb {
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #007bff;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: all 0.2s ease;
+        }
+        
+        .custom-range::-webkit-slider-thumb:hover {
+            background: #0056b3;
+            transform: scale(1.1);
+            box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+        }
+        
+        .custom-range::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #007bff;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        .proportion-display {
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .badge-lg {
+            font-size: 0.9rem;
+            padding: 8px 12px;
+        }
+        
+        /* Responsive design for slider */
+        @media (max-width: 768px) {
+            .proportion-display {
+                margin-top: 20px;
             }
         }
     </style>
@@ -313,8 +375,7 @@
                                 </div>
                             </div>
                         </div>                    </div>
-                    
-                    <!-- Tab Batch Processing -->
+                      <!-- Tab Batch Processing -->
                     <div class="tab-pane fade" id="batch" role="tabpanel" aria-labelledby="batch-tab">
                         <div class="row mt-3">
                             <div class="col-md-12">
@@ -327,6 +388,61 @@
                                             <i class="fas fa-info-circle"></i> Batch processing akan menjalankan prediksi Naive Bayes 
                                             pada seluruh data testing dan membandingkan hasilnya dengan nilai aktual.
                                         </p>
+                                        
+                                        <!-- Slider Proporsi Data -->
+                                        <div class="card mb-4">
+                                            <div class="card-header bg-light">
+                                                <h6 class="mb-0"><i class="fas fa-sliders-h"></i> Pengaturan Proporsi Data</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="row">
+                                                    <div class="col-md-8">
+                                                        <label for="trainTestSplit" class="form-label font-weight-bold">
+                                                            Proporsi Data Latih vs Data Uji:
+                                                        </label>
+                                                        <div class="mb-3">
+                                                            <input type="range" class="form-range custom-range" id="trainTestSplit" 
+                                                                   min="50" max="90" step="5" value="80">
+                                                        </div>
+                                                        <div class="d-flex justify-content-between small text-muted">
+                                                            <span>50% - 50%</span>
+                                                            <span>60% - 40%</span>
+                                                            <span>70% - 30%</span>
+                                                            <span>80% - 20%</span>
+                                                            <span>90% - 10%</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <div class="proportion-display">
+                                                            <div class="text-center">
+                                                                <div class="badge badge-primary badge-lg mb-2">
+                                                                    <i class="fas fa-graduation-cap"></i> Data Latih
+                                                                </div>
+                                                                <div class="h4 text-primary mb-0" id="trainPercentage">80%</div>
+                                                            </div>
+                                                            <hr class="my-2">
+                                                            <div class="text-center">
+                                                                <div class="badge badge-success badge-lg mb-2">
+                                                                    <i class="fas fa-chart-line"></i> Data Uji
+                                                                </div>
+                                                                <div class="h4 text-success mb-0" id="testPercentage">20%</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <!-- Informasi Tambahan -->
+                                                <div class="alert alert-light mt-3">
+                                                    <small class="text-muted">
+                                                        <i class="fas fa-info-circle"></i>
+                                                        <strong>Catatan:</strong> Proporsi yang dipilih akan mempengaruhi pembagian data 
+                                                        untuk training dan testing. Proporsi 80%-20% umumnya direkomendasikan untuk 
+                                                        dataset dengan ukuran sedang hingga besar.
+                                                    </small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
                                         <div class="text-center mb-3">
                                             <button id="runBatchProcessing" class="btn btn-primary btn-lg">
                                                 <i class="fas fa-play-circle"></i> Jalankan Batch Processing
@@ -736,7 +852,99 @@
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"
             crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/js/bootstrap.bundle.min.js" 
-            crossorigin="anonymous" referrerpolicy="no-referrer"></script>    <script src="{{ url_for('static', filename='js/simulation.js') }}"></script>
+            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+    <!-- Script untuk Slider Proporsi Data -->
+    <script>
+        // Initialize slider functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const slider = document.getElementById('trainTestSplit');
+            const trainPercentage = document.getElementById('trainPercentage');
+            const testPercentage = document.getElementById('testPercentage');
+            
+            // Function to update percentage display
+            function updatePercentages() {
+                const trainValue = slider.value;
+                const testValue = 100 - trainValue;
+                
+                trainPercentage.textContent = trainValue + '%';
+                testPercentage.textContent = testValue + '%';
+                
+                // Store the selected proportion for later use
+                window.selectedTrainTestSplit = {
+                    train: parseFloat(trainValue) / 100,
+                    test: parseFloat(testValue) / 100
+                };
+                
+                // Visual feedback with color change
+                if (trainValue >= 80) {
+                    trainPercentage.className = 'h4 text-success mb-0';
+                    testPercentage.className = 'h4 text-warning mb-0';
+                } else if (trainValue >= 70) {
+                    trainPercentage.className = 'h4 text-primary mb-0';
+                    testPercentage.className = 'h4 text-info mb-0';
+                } else {
+                    trainPercentage.className = 'h4 text-warning mb-0';
+                    testPercentage.className = 'h4 text-success mb-0';
+                }
+            }
+            
+            // Event listener for slider changes
+            slider.addEventListener('input', updatePercentages);
+            slider.addEventListener('change', updatePercentages);
+            
+            // Initialize on page load
+            updatePercentages();
+            
+            // Add smooth animation when slider changes
+            slider.addEventListener('input', function() {
+                this.style.background = `linear-gradient(90deg, #007bff ${this.value}%, #ddd ${this.value}%)`;
+            });
+            
+            // Initialize slider background
+            const initialValue = slider.value;
+            slider.style.background = `linear-gradient(90deg, #007bff ${initialValue}%, #ddd ${initialValue}%)`;
+        });
+        
+        // Function to get current train-test split ratio (for use in batch processing)
+        function getTrainTestSplit() {
+            return window.selectedTrainTestSplit || { train: 0.8, test: 0.2 };
+        }
+        
+        // Add notification when proportion changes significantly
+        let lastNotifiedValue = 80;
+        document.getElementById('trainTestSplit').addEventListener('change', function() {
+            const currentValue = parseInt(this.value);
+            const difference = Math.abs(currentValue - lastNotifiedValue);
+            
+            if (difference >= 10) {
+                // Show a brief notification
+                const notification = document.createElement('div');
+                notification.className = 'alert alert-info alert-dismissible fade show position-fixed';
+                notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+                notification.innerHTML = `
+                    <i class="fas fa-info-circle"></i>
+                    <strong>Proporsi Diperbarui:</strong> ${currentValue}% - ${100-currentValue}%
+                    <button type="button" class="close" data-dismiss="alert">
+                        <span>&times;</span>
+                    </button>
+                `;
+                
+                document.body.appendChild(notification);
+                
+                // Auto remove after 3 seconds
+                setTimeout(function() {
+                    if (notification.parentNode) {
+                        notification.remove();
+                    }
+                }, 3000);
+                
+                lastNotifiedValue = currentValue;
+            }
+        });
+    </script>
+            
+    <script src="{{ url_for('static', filename='js/simulation.js') }}"></script>
     <script src="{{ url_for('static', filename='js/batch-simulation.js') }}"></script>
 </script>
 </body>

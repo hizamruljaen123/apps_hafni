@@ -12,6 +12,55 @@
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/css/bootstrap.min.css" 
               crossorigin="anonymous" referrerpolicy="no-referrer" />            <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
             <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+            <style>
+                .border-left-primary {
+                    border-left: 0.25rem solid #4e73df !important;
+                }
+                .border-left-success {
+                    border-left: 0.25rem solid #1cc88a !important;
+                }
+                .border-left-warning {
+                    border-left: 0.25rem solid #f6c23e !important;
+                }
+                .border-left-info {
+                    border-left: 0.25rem solid #36b9cc !important;
+                }
+                .text-xs {
+                    font-size: 0.7rem;
+                }
+                .text-gray-800 {
+                    color: #5a5c69 !important;
+                }
+                .text-gray-300 {
+                    color: #dddfeb !important;
+                }
+                .text-gray-500 {
+                    color: #858796 !important;
+                }
+                .shadow {
+                    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15) !important;
+                }
+                .card {
+                    border: 1px solid #e3e6f0;
+                    border-radius: 0.35rem;
+                }
+                .chart-area {
+                    position: relative;
+                    height: 10rem;
+                    width: 100%;
+                }
+                .table-responsive {
+                    max-height: 400px;
+                    overflow-y: auto;
+                }
+                .animated--fade-in {
+                    animation: fadeIn 0.15s ease-in;
+                }
+                @keyframes fadeIn {
+                    0% { opacity: 0; }
+                    100% { opacity: 1; }
+                }
+            </style>
         </head>
         <body>
             <!-- Navbar -->
@@ -79,174 +128,368 @@
                                 <!-- Tambahkan menu lainnya sesuai kebutuhan -->
                             </ul>
                         </div>
-                    </nav>
-                    <!-- Konten Utama -->
+                    </nav>                    <!-- Konten Utama -->
                     <main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-md-4">
                         <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center
                             pt-3 pb-2 mb-3 border-bottom">
-                            <h1 class="h2">Dashboard</h1>
-                            
-                        </div>
-                        <!-- Contoh Kartu dengan Animasi -->
-                        <div class="row">
-                            <div class="col-md-6 mb-6">
-                                <div class="card animated-card">
-                                    <div class="card-body">
-                                        <h5 class="card-title">Hasil Prediksi</h5>
-                                        <canvas id="stuntingChart" height="200"></canvas>
-                                    </div>
+                            <h1 class="h2"><i class="fas fa-chart-line"></i> Dashboard Statistik Trafik</h1>
+                            <div class="btn-toolbar mb-2 mb-md-0">
+                                <div class="btn-group mr-2">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="refreshData">
+                                        <i class="fas fa-sync-alt"></i> Refresh
+                                    </button>
                                 </div>
                             </div>
-                            <div class="col-md-6 mb-6">
-                                <div class="card animated-card">
-                                    <div class="card-body">
-                                        <h5 class="card-title">Hasil Prediksi Berdasarkan Rentang Pendapatan</h5>
-                                        <canvas id="incomeChart" height="200"></canvas>
-                                    </div>
-                                </div>
-                            </div>
-                            
                         </div>
-                        
-                        <!-- Card Analisa Stunting Berdasarkan Usia Balita -->
-                        <div class="row mt-4">
-                            <div class="col-md-12">
-                                <div class="card animated-card">
-                                    <div class="card-header bg-info text-white">
-                                        <h5 class="mb-0"><i class="fas fa-chart-bar"></i> Analisa Stunting Berdasarkan Usia Balita</h5>
-                                    </div>
+
+                        <!-- Statistik Trafik Cards -->
+                        <div class="row mb-4">
+                            <div class="col-xl-3 col-md-6 mb-4">
+                                <div class="card border-left-primary shadow h-100 py-2">
                                     <div class="card-body">
-                                        <div class="row">
-                                            <div class="col-md-7">
-                                                <canvas id="ageChart" height="220"></canvas>
+                                        <div class="row no-gutters align-items-center">
+                                            <div class="col mr-2">
+                                                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                                    Total Data Uji</div>
+                                                <div class="h5 mb-0 font-weight-bold text-gray-800" id="totalDataUji">-</div>
                                             </div>
-                                            <div class="col-md-5">
-                                                <div class="table-responsive">
-                                                    <table class="table table-bordered table-striped">
-                                                        <thead class="thead-dark">
-                                                            <tr>
-                                                                <th>Kelompok Usia (bulan)</th>
-                                                                <th>Normal</th>
-                                                                <th>Stunting</th>
-                                                                <th>Total</th>
-                                                                <th>% Stunting</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody id="ageAnalysisTableBody">
-                                                            <!-- Data diisi via JS -->
-                                                        </tbody>
-                                                    </table>
-                                                </div>
+                                            <div class="col-auto">
+                                                <i class="fas fa-database fa-2x text-gray-300"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-xl-3 col-md-6 mb-4">
+                                <div class="card border-left-success shadow h-100 py-2">
+                                    <div class="card-body">
+                                        <div class="row no-gutters align-items-center">
+                                            <div class="col mr-2">
+                                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                                    Prediksi Normal</div>
+                                                <div class="h5 mb-0 font-weight-bold text-gray-800" id="prediksiNormal">-</div>
+                                            </div>
+                                            <div class="col-auto">
+                                                <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-xl-3 col-md-6 mb-4">
+                                <div class="card border-left-warning shadow h-100 py-2">
+                                    <div class="card-body">
+                                        <div class="row no-gutters align-items-center">
+                                            <div class="col mr-2">
+                                                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                                    Prediksi Stunting</div>
+                                                <div class="h5 mb-0 font-weight-bold text-gray-800" id="prediksiStunting">-</div>
+                                            </div>
+                                            <div class="col-auto">
+                                                <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-xl-3 col-md-6 mb-4">
+                                <div class="card border-left-info shadow h-100 py-2">
+                                    <div class="card-body">
+                                        <div class="row no-gutters align-items-center">
+                                            <div class="col mr-2">
+                                                <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                                    Tingkat Stunting (%)</div>
+                                                <div class="h5 mb-0 font-weight-bold text-gray-800" id="tingkatStunting">-</div>
+                                            </div>
+                                            <div class="col-auto">
+                                                <i class="fas fa-percentage fa-2x text-gray-300"></i>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        
-                        <br>
-                        <br>
-                        <!-- Tambahkan konten lainnya sesuai kebutuhan -->
-                        <!-- Tabel Data Training -->
-                        <div class="row">
-                            <div class="col-md-12">
-                                <div class="table-responsive"></div>
-                                <h5>Data Training</h5>
-                                <div class="table-container">
-                                    <table class="table table-striped table-bordered custom-table" id="data-table">
-                                        <thead class="thead-dark">
-                                            <tr>
-                                                <th>Nama Keluarga</th>
-                                                <th>Jenis Kelamin</th>
-                                                <th>Usia</th>
-                                                <th>Tinggi (cm)</th>
-                                                <th>Berat (kg)</th>
-                                                <th>Pendapatan (IDR)</th>
-                                                <th>Air Bersih</th>
-                                                <th>Kondisi Sanitasi</th>
-                                                <th>Susu Formula</th>
-                                                <th>Status Stunting</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="data-training">
-                                            <!-- Data akan diisi secara dinamis melalui JavaScript -->
-                                        </tbody>
-                                    </table>
+
+                        <!-- Chart Distribusi -->
+                        <div class="row mb-4">
+                            <div class="col-xl-8 col-lg-7">
+                                <div class="card shadow mb-4">
+                                    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                                        <h6 class="m-0 font-weight-bold text-primary">Distribusi Status Stunting</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="chart-area">
+                                            <canvas id="distributionChart"></canvas>
+                                        </div>
+                                    </div>
                                 </div>
-                                
+                            </div>
+
+                            <div class="col-xl-4 col-lg-5">
+                                <div class="card shadow mb-4">
+                                    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                                        <h6 class="m-0 font-weight-bold text-primary">Ringkasan Statistik</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-12 mb-3">
+                                                <div class="small text-gray-500">Jenis Kelamin Terbanyak</div>
+                                                <div class="font-weight-bold" id="jenisKelaminTerbanyak">-</div>
+                                            </div>
+                                            <div class="col-12 mb-3">
+                                                <div class="small text-gray-500">Rata-rata Usia (bulan)</div>
+                                                <div class="font-weight-bold" id="rataRataUsia">-</div>
+                                            </div>
+                                            <div class="col-12 mb-3">
+                                                <div class="small text-gray-500">Rata-rata Tinggi (cm)</div>
+                                                <div class="font-weight-bold" id="rataRataTinggi">-</div>
+                                            </div>
+                                            <div class="col-12 mb-3">
+                                                <div class="small text-gray-500">Rata-rata Berat (kg)</div>
+                                                <div class="font-weight-bold" id="rataRataBerat">-</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <br>
-                        <br>
+
+                        <!-- Tabel Data Uji -->
                         <div class="row">
-                            <div class="col-md-12">
-                                <h5>Hasil Evaluasi</h5>
-                            <div class="text-right">
-                                <button class="btn btn-primary" id="btn-predict" data-toggle="modal" data-target="#exampleModal">Evaluasi Model</button>
+                            <div class="col-12">
+                                <div class="card shadow mb-4">
+                                    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                                        <h6 class="m-0 font-weight-bold text-primary">
+                                            <i class="fas fa-table"></i> Data Uji (data_uji_y)
+                                        </h6>
+                                        <div class="dropdown no-arrow">
+                                            <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink"
+                                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+                                            </a>
+                                            <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in"
+                                                aria-labelledby="dropdownMenuLink">
+                                                <div class="dropdown-header">Aksi Tabel:</div>
+                                                <a class="dropdown-item" href="#" id="exportToExcel">
+                                                    <i class="fas fa-file-excel fa-sm fa-fw mr-2 text-gray-400"></i>
+                                                    Export ke Excel
+                                                </a>
+                                                <a class="dropdown-item" href="#" id="refreshTable">
+                                                    <i class="fas fa-sync fa-sm fa-fw mr-2 text-gray-400"></i>
+                                                    Refresh Data
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="table-responsive">
+                                            <table class="table table-bordered table-hover" id="dataUjiTable" width="100%" cellspacing="0">
+                                                <thead class="thead-dark">
+                                                    <tr>
+                                                        <th>ID</th>
+                                                        <th>Nama Keluarga</th>
+                                                        <th>Usia (bulan)</th>
+                                                        <th>Jenis Kelamin</th>
+                                                        <th>Pendapatan</th>
+                                                        <th>Tinggi (cm)</th>
+                                                        <th>Berat (kg)</th>
+                                                        <th>Air Bersih</th>
+                                                        <th>Kondisi Sanitasi</th>
+                                                        <th>Susu Formula</th>
+                                                        <th>Status Stunting</th>
+                                                        <th>Tanggal Input</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="dataUjiTableBody">
+                                                    <!-- Data akan diisi secara dinamis melalui JavaScript -->
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <br>
-                            <table class="table table-striped table-bordered custom-table" >
-                                <thead>
-                                    <tr>
-                                        <th>Accuracy</th>
-                                        <th>F1 Score</th>
-                                        <th>Precision</th>
-                                        <th>Recall</th>
-                                        <th>Stunting (%)</th>
-                                        <th>Tidak Stunting (%)</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td id="accuracy">-</td>
-                                        <td id="f1-score">-</td>
-                                        <td id="precision">-</td>
-                                        <td id="recall">-</td>
-                                        <td id="stunting">-</td>
-                                        <td id="not-stunting">-</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                            <br>
-                            <h5>Data Testing</h5>
-                            <div class="table-container">
-                                <table class="table table-striped table-bordered custom-table" id="data-table">
-                                    <thead class="thead-dark">
-                                        <tr>
-                                            <th>Nama Keluarga</th>
-                                            <th>Jenis Kelamin</th>
-                                            <th>Usia</th>
-                                            <th>Tinggi (cm)</th>
-                                            <th>Berat (kg)</th>
-                                            <th>Pendapatan (IDR)</th>
-                                            <th>Air Bersih</th>
-                                            <th>Kondisi Sanitasi</th>
-                                            <th>Susu Formula</th>
-                                            <th>Hasil Prediksi</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="data-test">
-                                        <!-- Data akan diisi secara dinamis melalui JavaScript -->
-                                    </tbody>
-                                </table>
-                            </div>
-                            
-                        </div>
-                        </div>
-                        
-                    </div>
+                        </div>                        
+                    </main>
                 </div>
+            </div>
+            
+            <!-- Bootstrap JS dan dependencies -->    
+            <script src="https://code.jquery.com/jquery-3.6.0.min.js" 
+                    crossorigin="anonymous"></script>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/js/bootstrap.bundle.min.js" 
+                    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            <script>
+                let distributionChart;
                 
-                <!-- Tabel Data Uji-->
+                // Fungsi untuk memuat data uji dari MySQL
+                async function loadDataUji() {
+                    try {
+                        const response = await fetch('/api/get_test_data_list');
+                        const result = await response.json();
+                        
+                        if (result.success) {
+                            const data = result.data;
+                            updateStatistics(data);
+                            updateTable(data);
+                            updateChart(data);
+                        } else {
+                            console.error('Error loading data:', result.message);
+                            showError('Gagal memuat data: ' + result.message);
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        showError('Terjadi kesalahan saat memuat data');
+                    }
+                }
                 
-            </main>
-        </div>
-    </div>
-      <!-- Bootstrap JS dan dependencies -->    <script src="https://code.jquery.com/jquery-3.6.0.min.js" 
-            crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/js/bootstrap.bundle.min.js" 
-            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <script src="{{ url_for('static', filename='js/data-validator.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-</body>
-</html>
+                // Update statistik cards
+                function updateStatistics(data) {
+                    const totalData = data.length;
+                    const stuntingCount = data.filter(item => item.status_stunting === 'Ya').length;
+                    const normalCount = totalData - stuntingCount;
+                    const stuntingPercentage = totalData > 0 ? ((stuntingCount / totalData) * 100).toFixed(1) : 0;
+                    
+                    // Hitung statistik tambahan
+                    const avgUsia = totalData > 0 ? (data.reduce((sum, item) => sum + parseInt(item.usia), 0) / totalData).toFixed(1) : 0;
+                    const avgTinggi = totalData > 0 ? (data.reduce((sum, item) => sum + parseFloat(item.tinggi), 0) / totalData).toFixed(1) : 0;
+                    const avgBerat = totalData > 0 ? (data.reduce((sum, item) => sum + parseFloat(item.berat), 0) / totalData).toFixed(1) : 0;
+                    
+                    // Hitung jenis kelamin terbanyak
+                    const genderCount = data.reduce((acc, item) => {
+                        acc[item.jenis_kelamin] = (acc[item.jenis_kelamin] || 0) + 1;
+                        return acc;
+                    }, {});
+                    const mostCommonGender = Object.keys(genderCount).reduce((a, b) => genderCount[a] > genderCount[b] ? a : b, '');
+                    
+                    // Update cards
+                    document.getElementById('totalDataUji').textContent = totalData;
+                    document.getElementById('prediksiNormal').textContent = normalCount;
+                    document.getElementById('prediksiStunting').textContent = stuntingCount;
+                    document.getElementById('tingkatStunting').textContent = stuntingPercentage + '%';
+                    
+                    // Update ringkasan statistik
+                    document.getElementById('jenisKelaminTerbanyak').textContent = mostCommonGender;
+                    document.getElementById('rataRataUsia').textContent = avgUsia + ' bulan';
+                    document.getElementById('rataRataTinggi').textContent = avgTinggi + ' cm';
+                    document.getElementById('rataRataBerat').textContent = avgBerat + ' kg';
+                }
+                
+                // Update tabel data uji
+                function updateTable(data) {
+                    const tbody = document.getElementById('dataUjiTableBody');
+                    let html = '';
+                    
+                    data.forEach((item, index) => {
+                        const statusClass = item.status_stunting === 'Ya' ? 'text-warning font-weight-bold' : 'text-success';
+                        const formattedDate = item.created_at ? new Date(item.created_at).toLocaleDateString('id-ID') : '-';
+                        
+                        html += `
+                            <tr>
+                                <td>${item.id || index + 1}</td>
+                                <td>${item.nama_keluarga || '-'}</td>
+                                <td>${item.usia}</td>
+                                <td>${item.jenis_kelamin}</td>
+                                <td>Rp ${parseInt(item.pendapatan).toLocaleString('id-ID')}</td>
+                                <td>${item.tinggi}</td>
+                                <td>${item.berat}</td>
+                                <td>${item.air_bersih}</td>
+                                <td>${item.kondisi_sanitasi}</td>
+                                <td>${item.susu_formula}</td>
+                                <td><span class="${statusClass}">${item.status_stunting}</span></td>
+                                <td>${formattedDate}</td>
+                            </tr>
+                        `;
+                    });
+                    
+                    tbody.innerHTML = html;
+                }
+                
+                // Update chart distribusi
+                function updateChart(data) {
+                    const ctx = document.getElementById('distributionChart').getContext('2d');
+                    
+                    const stuntingCount = data.filter(item => item.status_stunting === 'Ya').length;
+                    const normalCount = data.length - stuntingCount;
+                    
+                    if (distributionChart) {
+                        distributionChart.destroy();
+                    }
+                    
+                    distributionChart = new Chart(ctx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Normal', 'Stunting'],
+                            datasets: [{
+                                data: [normalCount, stuntingCount],
+                                backgroundColor: ['#1cc88a', '#f6c23e'],
+                                hoverBackgroundColor: ['#17a673', '#f4b619'],
+                                hoverBorderColor: "rgba(234, 236, 244, 1)",
+                            }]
+                        },
+                        options: {
+                            maintainAspectRatio: false,
+                            tooltips: {
+                                backgroundColor: "rgb(255,255,255)",
+                                bodyFontColor: "#858796",
+                                borderColor: '#dddfeb',
+                                borderWidth: 1,
+                                xPadding: 15,
+                                yPadding: 15,
+                                displayColors: false,
+                                caretPadding: 10,
+                                callbacks: {
+                                    label: function(tooltipItem, chart) {
+                                        var datasetLabel = chart.labels[tooltipItem.index] || '';
+                                        var total = chart.datasets[0].data.reduce((a, b) => a + b, 0);
+                                        var currentValue = chart.datasets[0].data[tooltipItem.index];
+                                        var percentage = Math.round((currentValue / total) * 100);
+                                        return datasetLabel + ': ' + currentValue + ' (' + percentage + '%)';
+                                    }
+                                }
+                            },
+                            legend: {
+                                display: true,
+                                position: 'bottom'
+                            },
+                            cutoutPercentage: 60,
+                        }
+                    });
+                }
+                
+                // Fungsi untuk menampilkan error
+                function showError(message) {
+                    alert('Error: ' + message);
+                }
+                
+                // Event listeners
+                document.addEventListener('DOMContentLoaded', function() {
+                    loadDataUji();
+                    
+                    // Refresh data button
+                    document.getElementById('refreshData').addEventListener('click', function() {
+                        loadDataUji();
+                    });
+                    
+                    // Refresh table button
+                    document.getElementById('refreshTable').addEventListener('click', function() {
+                        loadDataUji();
+                    });
+                    
+                    // Export to Excel button
+                    document.getElementById('exportToExcel').addEventListener('click', function() {
+                        // Implementasi export ke Excel
+                        window.open('/api/export_test_data_excel', '_blank');
+                    });
+                });
+                
+                // Auto refresh setiap 5 menit
+                setInterval(function() {
+                    loadDataUji();
+                }, 300000);
+            </script>
+        </body>
+        </html>

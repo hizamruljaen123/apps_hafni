@@ -16,6 +16,8 @@ import math
 import json
 import mysql.connector
 from mysql.connector import Error
+import io
+from datetime import datetime
 from config import DATABASE_CONFIG, APP_CONFIG, MODEL_CONFIG, FILE_PATHS, FEATURE_MAPPING, FEATURE_NAMES, SQL_QUERIES
 
 # Custom JSON encoder for NumPy data types
@@ -796,16 +798,31 @@ def get_test_data_list():
         data_list = []
         for idx, row in test_data.iterrows():
             data_list.append({
-                'id': str(idx),
-                'nama': row['nama_keluarga']
+                'id': getattr(row, 'id', idx + 1),
+                'nama_keluarga': row['nama_keluarga'],
+                'usia': row['usia'],
+                'jenis_kelamin': row['jenis_kelamin'],
+                'pendapatan': row['pendapatan'],
+                'tinggi': row['tinggi'],
+                'berat': row['berat'],
+                'air_bersih': row['air_bersih'],
+                'kondisi_sanitasi': row['kondisi_sanitasi'],
+                'susu_formula': row['susu_formula'],
+                'status_stunting': row['status_stunting'],
+                'created_at': getattr(row, 'created_at', None)
             })
         return jsonify({
+            'success': True,
             'data': data_list,
             'count': len(data_list),
-            'source': 'MySQL Database'
+            'source': 'MySQL Database (data_uji_y table)'
         })
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'message': 'Gagal memuat data dari MySQL. Pastikan database dan tabel data_uji_y tersedia.'
+        }), 500
 
 # API untuk mendapatkan detail data berdasarkan ID dari MySQL
 @app.route('/api/get_data_detail', methods=['GET'])
@@ -834,13 +851,30 @@ def get_data_detail():
 @app.route('/api/batch_process', methods=['GET'])
 def batch_process():
     try:
+        # Get train-test split parameters from request
+        train_size = request.args.get('train_size', 0.8, type=float)
+        test_size = request.args.get('test_size', 0.2, type=float)
+        
+        # Validate train-test split parameters
+        if train_size + test_size != 1.0:
+            # Normalize if they don't sum to 1
+            total = train_size + test_size
+            train_size = train_size / total
+            test_size = test_size / total
+        
         # Load data uji dari MySQL
         data = load_data_from_mysql('data_uji_y')
         
-        # Compute predictions
-        result = compute_batch_predictions(data)
+        # Compute predictions with custom train-test split
+        result = compute_batch_predictions_with_split(data, train_size, test_size)
         result['data_source'] = 'MySQL Database'
         result['total_records'] = len(data)
+        result['train_test_split'] = {
+            'train_size': train_size,
+            'test_size': test_size,
+            'train_percentage': f"{train_size*100:.1f}%",
+            'test_percentage': f"{test_size*100:.1f}%"
+        }
         
         return jsonify(result)
     except Exception as e:
@@ -1230,6 +1264,84 @@ def generate_tsne_visualization(data, labels):
             'tidak_stunting': {'x': [], 'y': []}
         }
 
+def compute_batch_predictions_with_split(data, train_size=0.8, test_size=0.2):
+    """Compute predictions for a batch of data with custom train-test split"""
+    try:
+        # Load model
+        model = joblib.load('naive_bayes_stunting_model.pkl')
+        
+        # Prepare data
+        X = preprocess_data(data)
+        
+        # Handle missing values (NaN)
+        imputer = SimpleImputer(strategy='mean')
+        X_imputed = imputer.fit_transform(X)
+        
+        # Map true labels
+        y_true = data['status_stunting'].map({'Tidak': 0, 'Ya': 1}).values
+        
+        # Apply custom train-test split
+        X_train, X_test, y_train, y_test = train_test_split(
+            X_imputed, y_true, test_size=test_size, train_size=train_size, 
+            random_state=42, stratify=y_true
+        )
+        
+        # Retrain model with custom split
+        custom_model = GaussianNB()
+        custom_model.fit(X_train, y_train)
+        
+        # Make predictions on test set
+        y_pred = custom_model.predict(X_test)
+        y_pred_proba = custom_model.predict_proba(X_test)
+        
+        # Calculate metrics
+        accuracy = accuracy_score(y_test, y_pred)
+        precision = precision_score(y_test, y_pred, zero_division=0)
+        recall = recall_score(y_test, y_pred, zero_division=0)
+        f1 = f1_score(y_test, y_pred, zero_division=0)
+        cm = confusion_matrix(y_test, y_pred).tolist()
+        
+        # Generate t-SNE visualization
+        tsne_data = generate_tsne_visualization(data, y_true)
+        
+        # Prepare results
+        results = []
+        for i, (y_true_val, y_pred_val, y_proba) in enumerate(zip(y_test, y_pred, y_pred_proba)):
+            results.append({
+                'nama_keluarga': f'Test_Record_{i+1}',
+                'actual': 'Stunting' if y_true_val == 1 else 'Tidak Stunting',
+                'predicted': 'Stunting' if y_pred_val == 1 else 'Tidak Stunting',
+                'is_correct': bool(y_true_val == y_pred_val),
+                'prob_stunting': float(y_proba[1]),
+                'prob_tidak_stunting': float(y_proba[0])
+            })
+        
+        # Prepare summary
+        correct_count = sum(1 for res in results if res['is_correct'])
+        total_count = len(results)
+        
+        summary = {
+            'accuracy': accuracy,
+            'precision': precision,
+            'recall': recall,
+            'f1_score': f1,
+            'confusion_matrix': cm,
+            'correct_count': correct_count,
+            'total_count': total_count,
+            'correct_percentage': (correct_count / total_count) * 100 if total_count > 0 else 0,
+            'train_count': len(X_train),
+            'test_count': len(X_test)
+        }
+        
+        return {
+            'results': results,
+            'summary': summary,
+            'tsne_data': tsne_data
+        }
+    
+    except Exception as e:
+        return {'error': str(e)}
+
 def compute_batch_predictions(data):
     """Compute predictions for a batch of data"""
     try:
@@ -1375,6 +1487,163 @@ def compute_batch_predictions(data):
         print(f"Error in batch processing: {str(e)}")
         return {
             'error': str(e)
+        }
+
+def compute_batch_predictions_with_split(data, train_size=0.8, test_size=0.2):
+    """Compute predictions for a batch of data with custom train-test split"""
+    try:
+        # Load model
+        model = joblib.load('naive_bayes_stunting_model.pkl')
+        
+        # Prepare data
+        X = preprocess_data(data)
+        
+        # Handle missing values (NaN)
+        imputer = SimpleImputer(strategy='mean')
+        X_imputed = imputer.fit_transform(X)
+        
+        # Map true labels
+        y_true = data['status_stunting'].map({'Tidak': 0, 'Ya': 1}).values
+        
+        # Apply custom train-test split
+        X_train, X_test, y_train, y_test = train_test_split(
+            X_imputed, y_true, test_size=test_size, train_size=train_size, 
+            random_state=42, stratify=y_true
+        )
+        
+        # Retrain model with custom split for more accurate evaluation
+        custom_model = GaussianNB()
+        custom_model.fit(X_train, y_train)
+        
+        # Make predictions on test set
+        y_pred = custom_model.predict(X_test)
+        y_pred_proba = custom_model.predict_proba(X_test)
+        
+        # Calculate metrics
+        accuracy = accuracy_score(y_test, y_pred)
+        precision = precision_score(y_test, y_pred, zero_division=0)
+        recall = recall_score(y_test, y_pred, zero_division=0)
+        f1 = f1_score(y_test, y_pred, zero_division=0)
+        cm = confusion_matrix(y_test, y_pred).tolist()
+        
+        # Generate t-SNE visualization for test data
+        tsne_data = generate_tsne_visualization(data.iloc[X_test.shape[0]:X_test.shape[0]*2] if len(data) >= X_test.shape[0]*2 else data, y_test)
+        
+        # Prepare results (using test set indices)
+        results = []
+        test_indices = data.index[len(data) - len(y_test):]  # Get corresponding indices
+        
+        for i, (idx, y_true_val, y_pred_val, y_proba) in enumerate(zip(test_indices, y_test, y_pred, y_pred_proba)):
+            if idx < len(data):
+                record = data.iloc[idx] if hasattr(data, 'iloc') else data.loc[idx]
+                results.append({
+                    'nama_keluarga': record.get('nama_keluarga', f'Record_{i+1}'),
+                    'actual': 'Stunting' if y_true_val == 1 else 'Tidak Stunting',
+                    'predicted': 'Stunting' if y_pred_val == 1 else 'Tidak Stunting',
+                    'is_correct': bool(y_true_val == y_pred_val),
+                    'prob_stunting': float(y_proba[1]),
+                    'prob_tidak_stunting': float(y_proba[0])
+                })
+        
+        # Prepare summary
+        correct_count = sum(1 for res in results if res['is_correct'])
+        total_count = len(results)
+        
+        summary = {
+            'accuracy': accuracy,
+            'precision': precision,
+            'recall': recall,
+            'f1_score': f1,
+            'confusion_matrix': cm,
+            'correct_count': correct_count,
+            'total_count': total_count,
+            'correct_percentage': (correct_count / total_count) * 100 if total_count > 0 else 0,
+            'train_count': len(X_train),
+            'test_count': len(X_test),
+            'split_info': {
+                'train_size': train_size,
+                'test_size': test_size,
+                'train_percentage': f"{train_size*100:.1f}%",
+                'test_percentage': f"{test_size*100:.1f}%"
+            }
+        }
+        
+        # Feature Selection Analysis with custom split
+        print("Menjalankan Feature Selection untuk Custom Split Batch Processing...")
+        
+        feature_names = ['pendapatan', 'tinggi', 'berat', 'jenis_kelamin', 'air_bersih', 'kondisi_sanitasi', 'susu_formula']
+        
+        # Perform backward elimination with custom split data
+        feature_selection_results = perform_backward_elimination_safe(X_train, y_train, feature_names)
+        
+        # Original model metrics (already calculated above)
+        original_metrics_batch = {
+            'accuracy': accuracy,
+            'precision': precision,
+            'recall': recall,
+            'f1_score': f1
+        }
+        
+        # Model with selected features only
+        if len(feature_selection_results['selected_feature_indices']) > 0:
+            X_train_selected = X_train[:, feature_selection_results['selected_feature_indices']]
+            X_test_selected = X_test[:, feature_selection_results['selected_feature_indices']]
+            
+            selected_model_batch = GaussianNB()
+            selected_model_batch.fit(X_train_selected, y_train)
+            y_pred_selected_batch = selected_model_batch.predict(X_test_selected)
+            
+            selected_metrics_batch = {
+                'accuracy': accuracy_score(y_test, y_pred_selected_batch),
+                'precision': precision_score(y_test, y_pred_selected_batch, zero_division=0),
+                'recall': recall_score(y_test, y_pred_selected_batch, zero_division=0),
+                'f1_score': f1_score(y_test, y_pred_selected_batch, zero_division=0)
+            }
+        else:
+            selected_metrics_batch = original_metrics_batch.copy()
+        
+        # Prepare feature importance data
+        feature_importance_data_batch = {
+            'features': list(feature_selection_results['feature_scores'].keys()),
+            'scores': list(feature_selection_results['feature_scores'].values())
+        }
+        
+        # Sort features by importance
+        sorted_features_batch = sorted(zip(feature_importance_data_batch['features'], feature_importance_data_batch['scores']),
+                                     key=lambda x: x[1], reverse=True)
+        feature_importance_data_batch['features'] = [f[0] for f in sorted_features_batch]
+        feature_importance_data_batch['scores'] = [f[1] for f in sorted_features_batch]
+
+        return {
+            'results': results,
+            'summary': summary,
+            'tsne_data': tsne_data,
+            'feature_selection': {
+                'success': True,
+                'selected_features': feature_selection_results['selected_features'],
+                'eliminated_features': [f for f in feature_names if f not in feature_selection_results['selected_features']],
+                'elimination_steps': feature_selection_results['elimination_steps'],
+                'feature_importance': feature_importance_data_batch,
+                'original_metrics': original_metrics_batch,
+                'selected_metrics': selected_metrics_batch,
+                'improvement': {
+                    'accuracy': selected_metrics_batch['accuracy'] - original_metrics_batch['accuracy'],
+                    'precision': selected_metrics_batch['precision'] - original_metrics_batch['precision'],
+                    'recall': selected_metrics_batch['recall'] - original_metrics_batch['recall'],
+                    'f1_score': selected_metrics_batch['f1_score'] - original_metrics_batch['f1_score']
+                },
+                'feature_count_reduction': len(feature_names) - len(feature_selection_results['selected_features'])
+            }
+        }
+    
+    except Exception as e:
+        print(f"Error in batch processing with custom split: {str(e)}")
+        return {
+            'error': str(e),
+            'results': [],
+            'summary': {},
+            'tsne_data': {'stunting': {'x': [], 'y': []}, 'tidak_stunting': {'x': [], 'y': []}},
+            'feature_selection': {'success': False, 'error': str(e)}
         }
 
 @app.route('/analysis_by_age', methods=['GET'])
@@ -1585,8 +1854,7 @@ def import_excel_to_mysql():
             return jsonify({'error': 'Cannot connect to MySQL database'}), 500
         
         cursor = connection.cursor()
-        
-        # Clear existing data
+          # Clear existing data
         cursor.execute("DELETE FROM data_uji_y")
         cursor.execute("DELETE FROM data_latih")
         
@@ -1594,17 +1862,15 @@ def import_excel_to_mysql():
         success_latih = 0
         for _, row in df_latih.iterrows():
             try:
-                insert_query = """
-                INSERT INTO data_latih (nama, usia, jenis_kelamin, pendapatan, tinggi, berat, air_bersih, kondisi_sanitasi, susu_formula, status_stunting) 
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """
-                values = (
-                    row['Nama'], int(row['usia']), row['jenis_kelamin'], 
-                    int(row['pendapatan']), int(row['tinggi']), float(row['berat']),
-                    row['air_bersih'], row['kondisi_sanitasi'], 
+                cursor.execute("""
+                    INSERT INTO data_latih (nama, usia, jenis_kelamin, pendapatan, tinggi, berat, 
+                                          air_bersih, kondisi_sanitasi, susu_formula, status_stunting)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """, (
+                    row['nama'], row['usia'], row['jenis_kelamin'], row['pendapatan'],
+                    row['tinggi'], row['berat'], row['air_bersih'], row['kondisi_sanitasi'],
                     row['susu_formula'], row['status_stunting']
-                )
-                cursor.execute(insert_query, values)
+                ))
                 success_latih += 1
             except Exception as e:
                 print(f"Error inserting data_latih row: {e}")
@@ -1613,146 +1879,25 @@ def import_excel_to_mysql():
         success_uji = 0
         for _, row in df_uji_y.iterrows():
             try:
-                insert_query = """
-                INSERT INTO data_uji_y (nama_keluarga, usia, jenis_kelamin, pendapatan, tinggi, berat, air_bersih, kondisi_sanitasi, susu_formula, status_stunting) 
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """
-                values = (
-                    row['nama_keluarga'], int(row['usia']), row['jenis_kelamin'], 
-                    int(row['pendapatan']), float(row['tinggi']), float(row['berat']),
-                    row['air_bersih'], row['kondisi_sanitasi'], 
+                cursor.execute("""
+                    INSERT INTO data_uji_y (nama_keluarga, usia, jenis_kelamin, pendapatan, tinggi, berat,
+                                          air_bersih, kondisi_sanitasi, susu_formula, status_stunting)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """, (
+                    row['nama_keluarga'], row['usia'], row['jenis_kelamin'], row['pendapatan'],
+                    row['tinggi'], row['berat'], row['air_bersih'], row['kondisi_sanitasi'],
                     row['susu_formula'], row['status_stunting']
-                )
-                cursor.execute(insert_query, values)
+                ))
                 success_uji += 1
             except Exception as e:
                 print(f"Error inserting data_uji_y row: {e}")
         
         connection.commit()
-        cursor.close()
-        connection.close()
         
         return jsonify({
-            'success': True,
-            'message': 'Data imported successfully',
-            'imported': {
-                'data_latih': success_latih,
-                'data_uji_y': success_uji,
-                'total': success_latih + success_uji
-            }
+            'success': True, 
+            'message': f'Data berhasil diimport. Data latih: {success_latih}, Data uji: {success_uji}'
         })
-        
-    except Exception as e:
-        return jsonify({'error': f'Import failed: {str(e)}'}), 500
-
-# CRUD Operations for Data Latih
-@app.route('/api/data_latih', methods=['GET', 'POST', 'PUT', 'DELETE'])
-def data_latih_crud():
-    """CRUD operations untuk data latih"""
-    try:
-        connection = create_mysql_connection()
-        if not connection:
-            return jsonify({'error': 'Cannot connect to database'}), 500
-        
-        cursor = connection.cursor(dictionary=True)
-        
-        if request.method == 'GET':
-            # Read operation
-            page = request.args.get('page', 1, type=int)
-            per_page = request.args.get('per_page', 20, type=int)
-            search = request.args.get('search', '')
-            
-            offset = (page - 1) * per_page
-            
-            # Build query with search
-            where_clause = ""
-            params = []
-            if search:
-                where_clause = """
-                WHERE nama LIKE %s OR jenis_kelamin LIKE %s 
-                OR status_stunting LIKE %s OR kondisi_sanitasi LIKE %s
-                """
-                search_param = f"%{search}%"
-                params = [search_param, search_param, search_param, search_param]
-            
-            # Get total count
-            count_query = f"SELECT COUNT(*) as total FROM data_latih {where_clause}"
-            cursor.execute(count_query, params)
-            total = cursor.fetchone()['total']
-            
-            # Get paginated data
-            data_query = f"""
-            SELECT id, nama, usia, jenis_kelamin, pendapatan, tinggi, berat, 
-                   air_bersih, kondisi_sanitasi, susu_formula, status_stunting, 
-                   created_at, updated_at
-            FROM data_latih {where_clause}
-            ORDER BY id DESC
-            LIMIT %s OFFSET %s
-            """
-            cursor.execute(data_query, params + [per_page, offset])
-            data = cursor.fetchall()
-            
-            return jsonify({
-                'data': data,
-                'pagination': {
-                    'page': page,
-                    'per_page': per_page,
-                    'total': total,
-                    'pages': math.ceil(total / per_page)
-                }
-            })
-        
-        elif request.method == 'POST':
-            # Create operation
-            data = request.get_json()
-            
-            insert_query = """
-            INSERT INTO data_latih (nama, usia, jenis_kelamin, pendapatan, tinggi, berat, 
-                                   air_bersih, kondisi_sanitasi, susu_formula, status_stunting)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """
-            values = (
-                data['nama'], data['usia'], data['jenis_kelamin'], data['pendapatan'],
-                data['tinggi'], data['berat'], data['air_bersih'], data['kondisi_sanitasi'],
-                data['susu_formula'], data['status_stunting']
-            )
-            
-            cursor.execute(insert_query, values)
-            connection.commit()
-            
-            return jsonify({'success': True, 'id': cursor.lastrowid, 'message': 'Data berhasil ditambahkan'})
-        
-        elif request.method == 'PUT':
-            # Update operation
-            data = request.get_json()
-            record_id = data.get('id')
-            
-            update_query = """
-            UPDATE data_latih SET 
-                nama=%s, usia=%s, jenis_kelamin=%s, pendapatan=%s, tinggi=%s, berat=%s,
-                air_bersih=%s, kondisi_sanitasi=%s, susu_formula=%s, status_stunting=%s
-            WHERE id=%s
-            """
-            values = (
-                data['nama'], data['usia'], data['jenis_kelamin'], data['pendapatan'],
-                data['tinggi'], data['berat'], data['air_bersih'], data['kondisi_sanitasi'],
-                data['susu_formula'], data['status_stunting'], record_id
-            )
-            
-            cursor.execute(update_query, values)
-            connection.commit()
-            
-            return jsonify({'success': True, 'message': 'Data berhasil diupdate'})
-        
-        elif request.method == 'DELETE':
-            # Delete operation
-            record_id = request.args.get('id', type=int)
-            
-            delete_query = "DELETE FROM data_latih WHERE id = %s"
-            cursor.execute(delete_query, (record_id,))
-            connection.commit()
-            
-            return jsonify({'success': True, 'message': 'Data berhasil dihapus'})
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -2108,6 +2253,60 @@ def get_combined_data():
         return jsonify(df.to_dict(orient='records'))
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+# Endpoint untuk export data uji ke Excel
+@app.route('/api/export_test_data_excel', methods=['GET'])
+def export_test_data_excel():
+    try:
+        # Load data from MySQL
+        test_data = load_data_from_mysql('data_uji_y')
+        
+        # Create Excel file in memory
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+            test_data.to_excel(writer, sheet_name='Data_Uji', index=False)
+            
+            # Format the Excel file
+            workbook = writer.book
+            worksheet = writer.sheets['Data_Uji']
+            
+            # Add formatting
+            header_format = workbook.add_format({
+                'bold': True,
+                'text_wrap': True,
+                'valign': 'top',
+                'fg_color': '#D7E4BC',
+                'border': 1
+            })
+            
+            # Apply header format
+            for col_num, value in enumerate(test_data.columns.values):
+                worksheet.write(0, col_num, value, header_format)
+                
+            # Auto adjust columns width
+            for column in test_data:
+                column_length = max(test_data[column].astype(str).map(len).max(), len(column))
+                col_idx = test_data.columns.get_loc(column)
+                worksheet.set_column(col_idx, col_idx, column_length + 2)
+        
+        output.seek(0)
+        
+        # Create response
+        from flask import Response
+        response = Response(
+            output.getvalue(),
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response.headers['Content-Disposition'] = f'attachment; filename=data_uji_export_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
+        
+        return response
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'message': 'Gagal mengexport data ke Excel'
+        }), 500
 
 if __name__ == '__main__':
     # Periksa dan latih model jika belum ada

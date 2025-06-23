@@ -15,8 +15,11 @@ async function runBatchProcessing() {
     $('#batchFeatureSelectionCard').hide();
     
     try {
-        // Call batch processing API
-        const response = await fetch('/api/batch_process');
+        // Get train-test split proportion from slider
+        const splitRatio = getTrainTestSplit();
+        
+        // Call batch processing API with train-test split parameter
+        const response = await fetch(`/api/batch_process?train_size=${splitRatio.train}&test_size=${splitRatio.test}`);
         const result = await response.json();
         
         if (response.ok) {
@@ -58,8 +61,30 @@ function displayBatchResults(data) {
 }
 
 function displayMetricsSummary(summary) {
+    // Prepare train-test split info if available
+    let splitInfo = '';
+    if (summary.train_count && summary.test_count) {
+        splitInfo = `
+            <tr class="table-info">
+                <td colspan="2"><strong>Informasi Split Data</strong></td>
+            </tr>
+            <tr>
+                <td>Data Training</td>
+                <td>${summary.train_count} records</td>
+            </tr>
+            <tr>
+                <td>Data Testing</td>
+                <td>${summary.test_count} records</td>
+            </tr>
+        `;
+    }
+    
     // Add metrics to table
     let metricsHtml = `
+        ${splitInfo}
+        <tr class="table-success">
+            <td colspan="2"><strong>Metrik Evaluasi</strong></td>
+        </tr>
         <tr>
             <td>Accuracy</td>
             <td>${(summary.accuracy * 100).toFixed(2)}%</td>

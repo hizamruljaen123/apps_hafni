@@ -630,3 +630,224 @@ footer {
 .table-container::-webkit-scrollbar-thumb:hover {
     background-color: #a8a8a8;
 }
+
+/* ===========================
+   Dashboard Statistics Styles
+   =========================== */
+.dashboard-stats-card {
+    border-radius: 0.5rem;
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.dashboard-stats-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.border-left-primary {
+    border-left: 0.25rem solid #4e73df !important;
+}
+
+.border-left-success {
+    border-left: 0.25rem solid #1cc88a !important;
+}
+
+.border-left-warning {
+    border-left: 0.25rem solid #f6c23e !important;
+}
+
+.border-left-info {
+    border-left: 0.25rem solid #36b9cc !important;
+}
+
+.text-xs {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1rem;
+}
+
+.text-gray-800 {
+    color: #5a5c69 !important;
+}
+
+.text-gray-300 {
+    color: #dddfeb !important;
+}
+
+.text-gray-500 {
+    color: #858796 !important;
+}
+
+.shadow {
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15) !important;
+}
+
+.chart-area {
+    position: relative;
+    height: 20rem;
+    width: 100%;
+}
+
+@media (max-width: 768px) {
+    .chart-area {
+        height: 15rem;
+    }
+}
+
+/* Table Responsive Enhancement */
+.table-responsive {
+    border-radius: 0.35rem;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.table-responsive::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background-color: #c1c1c1;
+    border-radius: 4px;
+    border: 2px solid #f1f1f1;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background-color: #a8a8a8;
+}
+
+/* Loading States */
+.loading-placeholder {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Alert Styles */
+.alert-dashboard {
+    border-radius: 0.5rem;
+    border: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+/* Button Enhancements */
+.btn-dashboard {
+    border-radius: 0.35rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05rem;
+    transition: all 0.15s ease-in-out;
+}
+
+.btn-dashboard:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+/* Card Enhancements */
+.card-dashboard {
+    border: 1px solid #e3e6f0;
+    border-radius: 0.35rem;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    transition: all 0.3s ease;
+}
+
+.card-dashboard:hover {
+    box-shadow: 0 0.5rem 2rem 0 rgba(58, 59, 69, 0.2);
+}
+
+.card-header-dashboard {
+    background-color: #f8f9fc;
+    border-bottom: 1px solid #e3e6f0;
+    padding: 1rem 1.25rem;
+}
+
+/* Dropdown Menu */
+.dropdown-menu-dashboard {
+    border: none;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    border-radius: 0.35rem;
+}
+
+.dropdown-item-dashboard {
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+    color: #858796;
+}
+
+.dropdown-item-dashboard:hover {
+    background-color: #f8f9fc;
+    color: #5a5c69;
+}
+
+/* Status Indicators */
+.status-indicator {
+    display: inline-block;
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 50%;
+    margin-right: 0.5rem;
+}
+
+.status-normal {
+    background-color: #1cc88a;
+}
+
+.status-stunting {
+    background-color: #f6c23e;
+}
+
+.status-critical {
+    background-color: #e74a3b;
+}
+
+/* Animation Classes */
+.animate-fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+.animate-slide-up {
+    animation: slideUp 0.5s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 576px) {
+    .dashboard-stats-card .h5 {
+        font-size: 1rem;
+    }
+    
+    .text-xs {
+        font-size: 0.6rem;
+    }
+    
+    .chart-area {
+        height: 12rem;
+    }
+}
