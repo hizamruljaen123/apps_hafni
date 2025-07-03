@@ -2158,9 +2158,9 @@ def upload_excel():
         
         # Validate columns based on table type
         if table_type == 'data_latih':
-            required_columns = ['Nama', 'usia', 'jenis_kelamin', 'pendapatan', 'tinggi', 'berat', 
+            required_columns = ['nama', 'usia', 'jenis_kelamin', 'pendapatan', 'tinggi', 'berat', 
                               'air_bersih', 'kondisi_sanitasi', 'susu_formula', 'status_stunting']
-            df = df.rename(columns={'Nama': 'nama'})  # Standardize column name
+            df = df.rename(columns={'nama': 'nama'})  # Standardize column name
         else:  # data_uji
             required_columns = ['nama_keluarga', 'usia', 'jenis_kelamin', 'pendapatan', 'tinggi', 'berat', 
                               'air_bersih', 'kondisi_sanitasi', 'susu_formula', 'status_stunting']
