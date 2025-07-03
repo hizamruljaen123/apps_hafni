@@ -1527,7 +1527,7 @@ def compute_batch_predictions_with_split(data, train_size=0.8, test_size=0.2):
         cm = confusion_matrix(y_test, y_pred).tolist()
         
         # Generate t-SNE visualization for test data
-        tsne_data = generate_tsne_visualization(data.iloc[X_test.shape[0]:X_test.shape[0]*2] if len(data) >= X_test.shape[0]*2 else data, y_test)
+        tsne_data = generate_tsne_visualization(data, y_true)
         
         # Prepare results (using test set indices)
         results = []
@@ -1761,7 +1761,7 @@ def feature_selection_analysis():
                 'accuracy': selected_metrics['accuracy'] - original_metrics['accuracy'],
                 'precision': selected_metrics['precision'] - original_metrics['precision'],
                 'recall': selected_metrics['recall'] - original_metrics['recall'],
-                'f1_score': selected_metrics['f1_score'] - original_metrics['f1_score']
+                               'f1_score': selected_metrics['f1_score'] - original_metrics['f1_score']
             },
             'feature_count_reduction': len(feature_names) - len(results['selected_features']),
             'data_source': 'MySQL Database',
@@ -2138,6 +2138,8 @@ def get_database_statistics():
 @app.route('/api/upload_excel', methods=['POST'])
 def upload_excel():
     """Upload and process Excel file"""
+    connection = None
+    cursor = None
     try:
         if 'file' not in request.files:
             return jsonify({'error': 'No file uploaded'}), 400
@@ -2217,7 +2219,6 @@ def upload_excel():
                 errors.append(f"Row {index + 1}: {str(e)}")
         
         connection.commit()
-        
         return jsonify({
             'success': True,
             'message': f'Upload completed. {success_count} records imported successfully.',
@@ -2232,10 +2233,16 @@ def upload_excel():
     except Exception as e:
         return jsonify({'error': f'Upload failed: {str(e)}'}), 500
     finally:
-        if connection and connection.is_connected():
-            cursor.close()
-            connection.close()
-
+        if cursor is not None:
+            try:
+                cursor.close()
+            except Exception:
+                pass
+        if connection is not None and connection.is_connected():
+            try:
+                connection.close()
+            except Exception:
+                pass
 # Route untuk halaman database management
 @app.route('/database')
 def database():
